@@ -4,11 +4,15 @@ import router from './router'
 import store from './store'
 import vuetify from './plugins/vuetify'
 import { loadFonts } from './plugins/webfontloader'
-
+import axios from 'axios'
 loadFonts()
 
-createApp(App)
+var app= createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
-  .mount('#app')
+axios.defaults.withCredentials=true
+app.config.globalProperties.$axios=axios
+
+
+  app.mount('#app')
