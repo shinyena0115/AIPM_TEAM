@@ -5,6 +5,7 @@ import DepartmentCreate from '../views/Admin/DepartmentCreate.vue';
 import Register from '../views/Register.vue';  
 import UserManage from '../views/Admin/UserManage.vue' 
 import AdminHome from '../views/Admin/AdminHome.vue' 
+import EmployeeHome from '../views/Employee/EmployeeHome.vue' 
 import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
 import ManagerVacation from '../views/Manager/ManagerVacation.vue' 
 import ManagerHome from '../views/Manager/ManagerHome.vue' 
@@ -70,6 +71,16 @@ const routes = [
   },
 
   //추가된 사원용 홈(대시보드)
+  { 
+
+    path: '/employee/home', // ✅ 추가된 사원용 홈(대시보드) 
+
+    name: 'EmployeeHome', 
+
+    component: EmployeeHome 
+
+  },
+
 
   //사원용 업무페이지 라우트 등록 
 
