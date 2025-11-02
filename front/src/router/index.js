@@ -3,7 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import Login from '../views/Login.vue' 
 import DepartmentCreate from '../views/Admin/DepartmentCreate.vue'; 
 import Register from '../views/Register.vue';  
-
+import UserManage from '../views/Admin/UserManage.vue' 
 const routes = [
   {
     path: '/',
@@ -45,6 +45,15 @@ const routes = [
     component: Register, 
 
   },
+  { 
+
+  path: '/admin/users', 
+
+  name: 'UserManage', 
+
+  component: UserManage 
+
+}, 
 
 
 ]

@@ -84,7 +84,7 @@ var usersRouter = require('./routes/users');
 var loginRouter = require("./routes/login");
 var departmentRouter = require("./routes/admin/department"); // ✅ 부서 + 팀 통합 라우터
 var registerRouter = require('./routes/register');
-
+var userManageRouter = require("./routes/admin/userManage");
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -101,7 +101,7 @@ app.use('/users', usersRouter);
 app.use("/api", loginRouter);
 app.use("/api/department", departmentRouter);
 app.use('/api/register', registerRouter);
-
+app.use("/admin/users", userManageRouter);
 // ======================================
 // ✅ 6. 오류 처리
 // ======================================
