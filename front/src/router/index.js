@@ -1,6 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import Login from '../views/Login.vue' 
+import DepartmentCreate from '../views/Admin/DepartmentCreate.vue'; 
+
 
 const routes = [
   {
@@ -25,8 +27,17 @@ const routes = [
     component: Login, 
 
   }, 
+  { 
 
-  
+    path: '/admin/departments', 
+
+    name: 'DepartmentCreate', 
+
+    component: DepartmentCreate 
+
+  }, 
+
+
 ]
 
 const router = createRouter({
