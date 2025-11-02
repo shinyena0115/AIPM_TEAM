@@ -83,7 +83,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var loginRouter = require("./routes/login");
 var departmentRouter = require("./routes/admin/department"); // ✅ 부서 + 팀 통합 라우터
-
+var registerRouter = require('./routes/register');
 
 
 // view engine setup
@@ -100,7 +100,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use("/api", loginRouter);
 app.use("/api/department", departmentRouter);
-
+app.use('/api/register', registerRouter);
 
 // ======================================
 // ✅ 6. 오류 처리
