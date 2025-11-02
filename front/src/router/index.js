@@ -5,6 +5,7 @@ import DepartmentCreate from '../views/Admin/DepartmentCreate.vue';
 import Register from '../views/Register.vue';  
 import UserManage from '../views/Admin/UserManage.vue' 
 import AdminHome from '../views/Admin/AdminHome.vue' 
+import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
 const routes = [
   {
     path: '/',
@@ -65,6 +66,21 @@ const routes = [
 
   },
 
+  //추가된 사원용 홈(대시보드)
+
+  //사원용 업무페이지 라우트 등록 
+
+{ 
+
+    path: '/employee/vacation', // ✅ 추가된 연차신청 페이지 
+
+    name: 'EmployeeVacation', 
+
+    component: EmployeeVacation 
+
+  },
+
+ // ✅ 연차 현황 페이지 (이재혁)
 
 ]
 
