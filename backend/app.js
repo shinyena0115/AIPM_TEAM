@@ -86,6 +86,7 @@ var departmentRouter = require("./routes/admin/department"); // ✅ 부서 + 팀
 var registerRouter = require('./routes/register');
 var userManageRouter = require("./routes/admin/userManage");
 var vacationRouter = require("./routes/employee/vacation");
+var managerVacations = require("./routes/manager/vacations");
 
 
 // view engine setup
@@ -105,6 +106,7 @@ app.use("/api/department", departmentRouter);
 app.use('/api/register', registerRouter);
 app.use("/admin/users", userManageRouter);
 app.use("/api/vacations", vacationRouter);
+app.use("/api/manager/vacations", managerVacations);
 // ======================================
 // ✅ 6. 오류 처리
 // ======================================

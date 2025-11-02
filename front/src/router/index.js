@@ -6,6 +6,8 @@ import Register from '../views/Register.vue';
 import UserManage from '../views/Admin/UserManage.vue' 
 import AdminHome from '../views/Admin/AdminHome.vue' 
 import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
+import ManagerVacation from '../views/Manager/ManagerVacation.vue' 
+
 const routes = [
   {
     path: '/',
@@ -81,6 +83,18 @@ const routes = [
   },
 
  // ✅ 연차 현황 페이지 (이재혁)
+
+
+
+  { 
+
+    path: '/manager/vacation', // ✅ 매니저 연차 승인 관리 페이지 
+
+    name: 'ManagerVacation', 
+
+    component: ManagerVacation 
+
+  } 
 
 ]
 
