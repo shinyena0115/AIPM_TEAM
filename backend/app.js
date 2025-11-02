@@ -3,11 +3,83 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var { Sequelize } = require("sequelize");
+const session = require("express-session");
+const MySQLStore = require("express-mysql-session")(session);
+const cors = require("cors");
+
+var app = express();
+
+
+// ======================================
+// ✅ 1. MySQL & Sequelize 연결
+// ======================================
+var connection = new Sequelize("AIPM", "root", "syn030115!", {
+  host: "localhost",
+  dialect: "mysql",
+  logging: false, // SQL 로그 숨김
+});
+
+// ======================================
+// ✅ 2. 모델 불러오기 및 정의 실행
+// ======================================
+var define = require("./model.js");
+const { User, Department, Team, Task, Vacation  } = define(connection);
+
+// ✅ 전역 모델 등록 (라우터에서 바로 사용 가능)
+global.User = User;
+global.Department = Department;
+global.Team = Team;
+global.Task = Task;
+global.Vacation=Vacation;
+
+// ======================================
+// ✅ 3. 세션 설정 (MySQL 세션 저장소)
+// ======================================
+const sessionStore = new MySQLStore({
+  host: "localhost",
+  port: 3306,
+  user: "root",
+  password: "syn030115!",
+  database: "AIPM",
+});
+
+// ======================================
+// ✅ 4. 미들웨어 설정
+// ======================================
+app.use(logger("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
+
+
+// ✅ CORS (Vue 개발 서버 연결 허용)
+app.use(
+  cors({
+    origin: "http://localhost:8080",
+    credentials: true,
+  })
+);
+
+// ✅ 세션 등록 (라우터보다 위)
+app.use(
+  session({
+    key: "session_cookie_name",
+    secret: "secret_key",
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 }, // 1시간
+  })
+);
+
+
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
-var app = express();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -22,20 +94,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
+
+
+// ======================================
+// ✅ 6. 오류 처리
+// ======================================
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+app.use(function (err, req, res, next) {
+  console.error("❌ 서버 오류:", err.message);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message,
+  });
 });
 
 module.exports = app;
