@@ -7,6 +7,7 @@ import UserManage from '../views/Admin/UserManage.vue'
 import AdminHome from '../views/Admin/AdminHome.vue' 
 import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
 import ManagerVacation from '../views/Manager/ManagerVacation.vue' 
+import ManagerHome from '../views/Manager/ManagerHome.vue' 
 
 const routes = [
   {
@@ -94,7 +95,19 @@ const routes = [
 
     component: ManagerVacation 
 
-  } 
+  } ,
+
+  { 
+
+    path: '/manager/home', 
+
+    name: 'ManagerHome', 
+
+    component: ManagerHome 
+
+  }, 
+
+
 
 ]
 
