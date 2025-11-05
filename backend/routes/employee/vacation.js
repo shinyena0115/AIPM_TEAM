@@ -46,44 +46,7 @@ router.post("/", async (req, res) => {
 });
 
 // ✅ 연차 현황 요약 (이재혁)
-router.get("/status", async (req, res) => {
-  try {
-    const sessionUser = req.session.user;
-    if (!sessionUser) return res.json({ success: false, message: "로그인이 필요합니다." });
 
-    // 승인된 연차만 조회
-    const vacations = await Vacation.findAll({
-      where: {
-        user_id: sessionUser.id,
-        status: "승인"
-      }
-    });
-
-    // 사용한 연차 일수 계산
-    let usedDays = 0;
-    vacations.forEach(v => {
-      const start = new Date(v.startDate);
-      const end = new Date(v.endDate);
-      const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-      usedDays += days;
-    });
-
-    const totalDays = 15; // 기본 연차 15일
-    const remainingDays = totalDays - usedDays;
-
-    res.json({
-      success: true,
-      status: {
-        totalDays,
-        usedDays,
-        remainingDays
-      }
-    });
-  } catch (err) {
-    console.error("❌ 연차 현황 조회 오류:", err);
-    res.status(500).json({ success: false, message: "서버 오류" });
-  }
-});
 
 
 
