@@ -14,7 +14,8 @@ var app = express();
 // ======================================
 // ✅ 1. MySQL & Sequelize 연결1
 // ======================================
-var connection = new Sequelize("AIPM", "root", "syn030115!", {
+require('dotenv').config()
+var connection = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
   host: "localhost",
   dialect: "mysql",
   logging: false, // SQL 로그 숨김
