@@ -55,7 +55,7 @@
           <tr>
             <th>신청일</th>
             <th>기간</th>
-            <th>일a수</th>
+            <th>일수</th>
             <th>사유</th>
             <th>상태</th>
             <th>반려 사유</th>
