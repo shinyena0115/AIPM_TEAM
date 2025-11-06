@@ -14,7 +14,7 @@ var app = express();
 // ======================================
 // ✅ 1. MySQL & Sequelize 연결
 // ======================================
-var connection = new Sequelize("AIPM", "root", "syn030115!", {
+var connection = new Sequelize("AIPM", "root", "", {
   host: "localhost",
   dialect: "mysql",
   logging: false, // SQL 로그 숨김
@@ -40,7 +40,7 @@ const sessionStore = new MySQLStore({
   host: "localhost",
   port: 3306,
   user: "root",
-  password: "syn030115!",
+  password: "",
   database: "AIPM",
 });
 
