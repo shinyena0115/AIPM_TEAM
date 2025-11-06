@@ -7,7 +7,7 @@ import { loadFonts } from './plugins/webfontloader'
 import axios from 'axios'
 loadFonts()
 
-var app= createApp(App)
+var app=createApp(App)
   .use(router)
   .use(store)
   .use(vuetify)
@@ -15,4 +15,4 @@ axios.defaults.withCredentials=true
 app.config.globalProperties.$axios=axios
 
 
-  app.mount('#app')
+app.mount('#app')

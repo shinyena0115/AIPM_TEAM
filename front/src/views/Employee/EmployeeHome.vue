@@ -59,6 +59,20 @@
               <p class="email">{{ currentUser?.email }}</p> 
 
               <hr /> 
+            
+
+  <!-- ✅ 출근/퇴근 버튼 -->
+  <div class="attendance">
+    <button @click="checkIn" :disabled="checkInTime">출근</button>
+    <button @click="checkOut" :disabled="!checkInTime || checkOutTime">퇴근</button>
+
+    <div class="time-info" v-if="checkInTime || checkOutTime">
+      <p v-if="checkInTime">출근: {{ checkInTime }}</p>
+      <p v-if="checkOutTime">퇴근: {{ checkOutTime }}</p>
+    </div>
+  </div>
+
+  <hr />
 
               <button class="logout" @click="logout">로그아웃</button> 
 
@@ -183,6 +197,8 @@ export default {
       showDropdown: false, 
 
       userIcon: userProfileIcon, // 여기서 이미지 바인딩 
+      checkInTime: null,
+    checkOutTime: null,
 
     }; 
 
@@ -255,6 +271,14 @@ export default {
     }, 
 
   }, 
+   checkIn() {
+    const now = new Date();
+    this.checkInTime = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  },
+  checkOut() {
+    const now = new Date();
+    this.checkOutTime = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  },
 
 }; 
 
@@ -631,5 +655,36 @@ export default {
   background: #22c55e; 
 
 } 
+
+.attendance {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.attendance button {
+  background: #19953e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.attendance button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.attendance .time-info {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+  text-align: left;
+}
+
+
 
 </style> 

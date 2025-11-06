@@ -1,20 +1,22 @@
 <template> 
 
-  <div class="vacation-page">
+  <div class="vacation-page"> 
 
-    <div class="header">
+    <div class="header"> 
 
-      <h1>연차 신청</h1>
+      <h1>연차 신청</h1> 
 
-      <p>근무일정 및 연차 내역을 확인하고 신청하세요.</p>
-
-      <div class="header-actions">
-        <button @click="$router.push('/employee/vacation-status')" class="status-btn">
-          📊 연차 현황 보기
-        </button>
-      </div>
+      <p>근무일정 및 연차 내역을 확인하고 신청하세요.</p> 
 
     </div> 
+
+     <!-- ✅ 연차 현황 확인하기 버튼 -->
+    <div class="vacation-status-btn-box">
+      <button class="vacation-status-btn" @click="$router.push('/employee/vacation-status')">
+        연차 현황 확인하기
+      </button>
+    </div>
+
 
  
 
@@ -326,6 +328,35 @@ export default {
 
 .status-btn:hover {
   background-color: #2563eb;
+}
+.header { 
+
+  text-align: center; 
+
+  margin-bottom: 2rem; 
+
+} 
+
+ 
+
+.header h1 { 
+
+  font-size: 2rem; 
+
+  color: #1f2937; 
+
+  font-weight: 700; 
+
+} 
+
+ 
+
+.header p { 
+
+  color: #6b7280; 
+
+  margin-top: 0.5rem; 
+
 } 
 
  
@@ -549,6 +580,25 @@ tr:hover {
   color: #dc2626; 
 
 } 
+
+.vacation-status-btn-box {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.vacation-status-btn {
+  background-color: #4caf50;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+
 
 </style> 
 

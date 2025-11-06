@@ -1,8 +1,8 @@
-var createError = require("http-errors");
-var express = require("express");
-var path = require("path");
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
 var { Sequelize } = require("sequelize");
 const session = require("express-session");
 const MySQLStore = require("express-mysql-session")(session);
@@ -89,6 +89,8 @@ var loginRouter = require("./routes/login");
 var departmentRouter = require("./routes/admin/department"); // ✅ 부서 + 팀 통합 라우터
 var registerRouter = require('./routes/register');
 var userManageRouter = require("./routes/admin/userManage");
+var vacationRouter = require("./routes/employee/vacation");
+var managerVacations = require("./routes/manager/vacations");
 
 // employee tasks 라우터
 var employeeTasksRouter = require("./routes/employee/tasks");
@@ -97,23 +99,31 @@ var employeeTasksRouter = require("./routes/employee/tasks");
 var aiTaskRouter = require("./routes/api/apiTask");
 
 var vacationRouter = require("./routes/employee/vacation");
-
 var managerVacations = require("./routes/manager/vacations");
 
 
-app.use("/", indexRouter);
-app.use("/users", usersRouter);
-app.use("/api", loginRouter); // /api/login
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+app.use("/api", loginRouter);
 app.use("/api/department", departmentRouter);
 app.use('/api/register', registerRouter);
 app.use("/admin/users", userManageRouter);
-
-app.use("/api/ai", aiTaskRouter);        // AI 분석용
-app.use("/api/tasks", employeeTasksRouter);
-
 app.use("/api/vacations", vacationRouter);
 app.use("/api/manager/vacations", managerVacations);
 
+
+app.use("/api/ai", aiTaskRouter);        // AI 분석용
+app.use("/api/tasks", employeeTasksRouter);
 
 // ======================================
 // ✅ 6. 오류 처리
