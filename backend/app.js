@@ -16,7 +16,7 @@ var app = express();
 // ======================================
 require('dotenv').config()
 var connection = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
-  host: "localhost",
+  host: "127.0.0.1",
   dialect: "mysql",
   logging: false, // SQL 로그 숨김
 });
@@ -40,9 +40,9 @@ global.Vacation=Vacation;
 const sessionStore = new MySQLStore({
   host: "localhost",
   port: 3306,
-  user: "root",
-  password: "syn030115!",
-  database: "AIPM",
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
 });
 
 // ======================================
