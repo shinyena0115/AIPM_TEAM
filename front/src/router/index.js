@@ -4,11 +4,14 @@ import Login from '../views/Login.vue'
 import DepartmentCreate from '../views/Admin/DepartmentCreate.vue'; 
 import Register from '../views/Register.vue';  
 import UserManage from '../views/Admin/UserManage.vue' 
+import Tasks from '../views/Employee/Tasks.vue' 
 import AdminHome from '../views/Admin/AdminHome.vue' 
 import EmployeeHome from '../views/Employee/EmployeeHome.vue' 
 import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
 import ManagerVacation from '../views/Manager/ManagerVacation.vue' 
 import ManagerHome from '../views/Manager/ManagerHome.vue' 
+import VacationStatus from '../views/Employee/VacationStatus.vue'
+
 
 const routes = [
   {
@@ -33,23 +36,22 @@ const routes = [
     component: Login, 
 
   }, 
+
+   { 
+    path: '/register', 
+    name: 'Register', 
+    component: Register, // ✅ 회원가입 페이지 등록 
+  }, 
+
   { 
-
     path: '/admin/departments', 
-
     name: 'DepartmentCreate', 
-
     component: DepartmentCreate 
-
   }, 
      { 
-
     path: '/register', 
-
     name: 'Register', 
-
     component: Register, 
-
   },
   { 
 
@@ -72,43 +74,45 @@ const routes = [
 
   //추가된 사원용 홈(대시보드)
   { 
-
     path: '/employee/home', // ✅ 추가된 사원용 홈(대시보드) 
 
     name: 'EmployeeHome', 
 
     component: EmployeeHome 
+  },
+ 
+
+ { 
+
+    path: '/employee/tasks', 
+
+    name: 'EmployeeTasks', 
+
+    component: Tasks // ✅ 사원용 업무페이지 라우트 등록 
+
+  }, 
+
+  {
+
+    path: '/employee/vacation', // ✅ 추가된 연차신청 페이지
+
+    name: 'EmployeeVacation',
+
+    component: EmployeeVacation
 
   },
 
+  {
 
-  //사원용 업무페이지 라우트 등록 
+    path: '/employee/vacation-status', // ✅ 연차 현황 페이지 (이재혁)
 
-{ 
+    name: 'VacationStatus',
 
-    path: '/employee/vacation', // ✅ 추가된 연차신청 페이지 
-
-    name: 'EmployeeVacation', 
-
-    component: EmployeeVacation 
+    component: VacationStatus
 
   },
 
- // ✅ 연차 현황 페이지 (이재혁)
-
-
-
-  { 
-
-    path: '/manager/vacation', // ✅ 매니저 연차 승인 관리 페이지 
-
-    name: 'ManagerVacation', 
-
-    component: ManagerVacation 
-
-  } ,
-
-  { 
+   {
 
     path: '/manager/home', 
 
@@ -118,7 +122,26 @@ const routes = [
 
   }, 
 
+   { 
 
+    path: '/admin/home', // ✅ 관리자 대시보드 
+
+    name: 'AdminHome', 
+
+    component: AdminHome 
+
+  },
+  { 
+    path: '/manager/vacation', // ✅ 매니저 연차 승인 관리 페이지 
+    name: 'ManagerVacation', 
+    component: ManagerVacation 
+  },
+  { 
+    path: '/manager/home', 
+    name: 'ManagerHome', 
+    component: ManagerHome 
+
+  }, 
 
 ]
 

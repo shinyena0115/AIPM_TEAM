@@ -284,6 +284,51 @@ export default {
 
  
 
+.header {
+
+  text-align: center;
+
+  margin-bottom: 2rem;
+
+}
+
+.header h1 {
+
+  font-size: 2rem;
+
+  color: #1f2937;
+
+  font-weight: 700;
+
+}
+
+.header p {
+
+  color: #6b7280;
+
+  margin-top: 0.5rem;
+
+}
+
+.header-actions {
+  margin-top: 1rem;
+}
+
+.status-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s;
+  font-weight: 500;
+}
+
+.status-btn:hover {
+  background-color: #2563eb;
+}
 .header { 
 
   text-align: center; 

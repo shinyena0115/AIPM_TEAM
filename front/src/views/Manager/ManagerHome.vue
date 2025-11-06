@@ -74,7 +74,7 @@
 
       <div class="welcome"> 
 
-        <h1>{{ currentUser?.name }} 매니저님, 안녕하세요</h1> 
+        <h1>{{ currentUser?.name }} 매니저님, 안녕하세요!</h1> 
 
         <p>오늘 팀의 진행 상황을 확인해보세요. </p> 
 
