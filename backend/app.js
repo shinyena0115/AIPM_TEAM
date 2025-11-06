@@ -12,7 +12,7 @@ var app = express();
 
 
 // ======================================
-// ✅ 1. MySQL & Sequelize 연결
+// ✅ 1. MySQL & Sequelize 연결1
 // ======================================
 var connection = new Sequelize("AIPM", "root", "syn030115!", {
   host: "localhost",
