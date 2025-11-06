@@ -14,7 +14,8 @@ var app = express();
 // ======================================
 // ✅ 1. MySQL & Sequelize 연결1
 // ======================================
-var connection = new Sequelize("AIPM", "root", "syn030115!", {
+require('dotenv').config()
+var connection = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
   host: "localhost",
   dialect: "mysql",
   logging: false, // SQL 로그 숨김
@@ -89,6 +90,12 @@ var vacationRouter = require("./routes/employee/vacation");
 var managerVacations = require("./routes/manager/vacations");
 
 
+// employee tasks 라우터
+var employeeTasksRouter = require("./routes/employee/tasks");
+// AI 분석용 라우터
+var aiTaskRouter = require("./routes/api/apiTask");
+
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -107,6 +114,10 @@ app.use('/api/register', registerRouter);
 app.use("/admin/users", userManageRouter);
 app.use("/api/vacations", vacationRouter);
 app.use("/api/manager/vacations", managerVacations);
+
+
+app.use("/api/ai", aiTaskRouter);        // AI 분석용
+app.use("/api/tasks", employeeTasksRouter);
 // ======================================
 // ✅ 6. 오류 처리
 // ======================================
