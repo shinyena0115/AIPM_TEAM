@@ -3,7 +3,6 @@ const router = express.Router();
 
 const Vacation = global.Vacation;
 const User = global.User;
-const Team = global.Team;
 
 // ✅ 같은 팀 직원 연차 목록 조회
 router.get("/", async (req, res) => {
@@ -22,7 +21,7 @@ router.get("/", async (req, res) => {
       return res.json({ success: false, message: "사용자 정보를 찾을 수 없습니다." });
     }
 
-    // ✅ 같은 팀 직원들의 연차 + 팀 이름 조회
+    // ✅ 같은 팀의 직원들의 연차만 조회
     const vacations = await Vacation.findAll({
       include: [
         {
@@ -30,13 +29,6 @@ router.get("/", async (req, res) => {
           as: "user",
           where: { team_id: manager.team_id },
           attributes: ["user_id", "name", "email", "team_id"],
-          include: [
-            {
-              model: Team,
-              as: "Team",
-              attributes: ["name"], // ✅ 팀 이름만 포함
-            },
-          ],
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -61,13 +53,14 @@ router.post("/:vacationId/status", async (req, res) => {
     }
 
     const { vacationId } = req.params;
-    const { status, rejection_reason } = req.body; // ✅ 반려 사유 포함
+    const { status, rejection_reason } = req.body; // ✅ 반려 사유 추가
+   
 
     if (!["승인", "반려"].includes(status)) {
       return res.json({ success: false, message: "잘못된 상태값입니다." });
     }
 
-    // ✅ 연차 정보 조회 (직원 포함)
+    // ✅ 연차 정보 + 직원 정보 조회
     const vacation = await Vacation.findByPk(vacationId, {
       include: [{ model: User, as: "user", attributes: ["team_id"] }],
     });
@@ -81,17 +74,20 @@ router.post("/:vacationId/status", async (req, res) => {
       return res.json({ success: false, message: "사용자 정보를 찾을 수 없습니다." });
     }
 
-    // ✅ 같은 팀인지 확인
+    // ✅ 같은 팀인지 검증
     if (vacation.user.team_id !== manager.team_id) {
       return res.json({ success: false, message: "같은 팀 직원만 승인할 수 있습니다." });
     }
 
-    // ✅ 상태 업데이트 및 반려 사유 저장
-    vacation.status = status;
+     vacation.status = status;
     if (status === "반려") {
       vacation.rejection_reason = rejection_reason || "사유 없음";
     }
 
+    
+
+    // ✅ 상태 업데이트
+    vacation.status = status;
     await vacation.save();
 
     res.json({ success: true, message: `연차가 ${status} 처리되었습니다.` });
