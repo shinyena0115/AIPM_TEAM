@@ -142,18 +142,25 @@ const Vacation = connection.define("Vacation", {
   User.hasMany(Task, { foreignKey: "user_id", as: "Tasks" });
   Task.belongsTo(User, { foreignKey: "user_id", as: "User" });
 
-User.hasMany(Vacation, { foreignKey: "user_id" });
-  Vacation.belongsTo(User, { foreignKey: "user_id" });
+
+
+  
+// ✅ 사용자 ↔ 연차 관계 (1:N)
+User.hasMany(Vacation, { foreignKey: "user_id", as: "Vacations" });
+Vacation.belongsTo(User, { foreignKey: "user_id", as: "user" }); // 👈 as 추가
+
+
+
 
   // ✅ 테이블 생성 (force: false → 기존 데이터 유지)
-  connection.sync({ alter: true });
+  //connection.sync({ alter: true });
 
     // ======================
   // ✅ 동기화 (테이블 초기화)
   // ======================
-  //connection.sync({ force: true })
-  //  .then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
-  // .catch(err => console.error("❌ DB 초기화 오류:", err));
+ //connection.sync({ force: true })
+  //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
+  //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
   
 
