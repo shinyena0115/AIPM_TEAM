@@ -85,7 +85,6 @@ router.post("/:vacationId/status", async (req, res) => {
     }
 
     
-
     // ✅ 상태 업데이트
     vacation.status = status;
     await vacation.save();
