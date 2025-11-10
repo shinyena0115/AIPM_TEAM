@@ -18,56 +18,55 @@
   </div> 
 </template> 
 
-<script> 
-import axios from "axios"; 
-export default { 
-  name: "Register", 
-  data() { 
-    return { 
-      departments: [], 
-      filteredTeams: [], 
-      form: { 
-        name: "", 
-        email: "", 
-        password: "", 
-        department_id: "", 
-        team_id: "", 
-      }, 
-    }; 
-  }, 
+<script>
+export default {
+  name: "Register",
+  data() {
+    return {
+      departments: [],
+      filteredTeams: [],
+      form: {
+        name: "",
+        email: "",
+        password: "",
+        department_id: "",
+        team_id: "",
+      },
+    };
+  },
 
-  async mounted() { 
-    const res = await axios.get("/api/register/options"); 
-    if (res.data.success) this.departments = res.data.departments; 
-  }, 
+  async mounted() {
+    const res = await this.$axios.get("/api/register/options");
+    if (res.data.success) this.departments = res.data.departments;
+  },
 
-  methods: { 
-    filterTeams() { 
-      const selected = this.departments.find((d) => d.id === this.form.department_id); 
-      this.filteredTeams = selected ? selected.Teams : []; 
-      this.form.team_id = ""; 
-    }, 
+  methods: {
+    filterTeams() {
+      const selected = this.departments.find((d) => d.id === this.form.department_id);
+      this.filteredTeams = selected ? selected.Teams : [];
+      this.form.team_id = "";
+    },
 
-    async submitForm() { 
-      if (!this.form.name || !this.form.email || !this.form.password) { 
-        return alert("모든 필드를 입력해주세요."); 
-      } 
+    async submitForm() {
+      if (!this.form.name || !this.form.email || !this.form.password) {
+        return alert("모든 필드를 입력해주세요.");
+      }
 
-      try { 
-        const res = await axios.post("/api/register", this.form); 
-        if (res.data.success) { 
-          alert("회원가입 신청이 완료되었습니다."); 
-          this.$router.push("/login"); 
-        } else { 
-          alert("회원가입 실패: " + res.data.message); 
-        } 
-      } catch (err) { 
-        console.error(err); 
-        alert("서버 오류가 발생했습니다."); 
-      } 
-    }, 
-  }, 
-}; 
+      try {
+        const res = await this.$axios.post("/api/register", this.form);
+        if (res.data.success) {
+          alert("회원가입 신청이 완료되었습니다.");
+          this.$router.push("/login");
+        } else {
+          alert("회원가입 실패: " + res.data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("서버 오류가 발생했습니다.");
+      }
+    },
+  },
+};
 
 </script> 
 <style scoped> 

@@ -126,199 +126,171 @@
 
  
 
-<script> 
+<script>
 
-import axios from "axios"; 
+export default {
 
- 
+  name: "ManagerVacation",
 
-export default { 
+  data() {
 
-  name: "ManagerVacation", 
+    return {
 
-  data() { 
+      vacations: [],
 
-    return { 
+      showRejectModal: false,
 
-      vacations: [], 
+      selectedVacationId: null,
 
-      showRejectModal: false, // ✅ 모달 상태 
+      rejectionReason: "",
 
-      selectedVacationId: null, 
+    };
 
-      rejectionReason: "", 
+  },
 
-    }; 
+  async created() {
 
-  }, 
+    await this.loadVacations();
 
-  async created() { 
+  },
 
-    await this.loadVacations(); 
+  methods: {
 
-  }, 
+    async loadVacations() {
 
-  methods: { 
+      try {
 
-    // ✅ 연차 목록 불러오기 
+        const res = await this.$axios.get("http://localhost:3000/api/manager/vacations");
 
-    async loadVacations() { 
+        if (res.data.success) {
 
-      try { 
+          this.vacations = res.data.vacations;
 
-        const res = await axios.get("http://localhost:3000/api/manager/vacations", { 
+        } else {
 
-          withCredentials: true, 
+          alert("데이터 불러오기 실패: " + res.data.message);
 
-        }); 
+        }
 
-        if (res.data.success) { 
+      } catch (err) {
 
-          this.vacations = res.data.vacations; 
+        console.error("연차 목록 불러오기 오류:", err);
 
-        } else { 
+      }
 
-          alert("데이터 불러오기 실패: " + res.data.message); 
+    },
 
-        } 
 
-      } catch (err) { 
+    async updateStatus(vacationId, status) {
 
-        console.error("연차 목록 불러오기 오류:", err); 
+      if (!confirm(`해당 연차를 ${status}하시겠습니까?`)) return;
 
-      } 
+      try {
 
-    }, 
+        const res = await this.$axios.post(
 
- 
+          `http://localhost:3000/api/manager/vacations/${vacationId}/status`,
 
-    // ✅ 승인 처리 
+          { status }
 
-    async updateStatus(vacationId, status) { 
+        );
 
-      if (!confirm(`해당 연차를 ${status}하시겠습니까?`)) return; 
+        if (res.data.success) {
 
-      try { 
+          alert(res.data.message);
 
-        const res = await axios.post( 
+          this.loadVacations();
 
-          `http://localhost:3000/api/manager/vacations/${vacationId}/status`, 
+        } else {
 
-          { status }, 
+          alert("처리 실패: " + res.data.message);
 
-          { withCredentials: true } 
+        }
 
-        ); 
+      } catch (err) {
 
-        if (res.data.success) { 
+        console.error("연차 처리 오류:", err);
 
-          alert(res.data.message); 
+      }
 
-          this.loadVacations(); 
+    },
 
-        } else { 
 
-          alert("처리 실패: " + res.data.message); 
+    openRejectModal(vacationId) {
 
-        } 
+      this.selectedVacationId = vacationId;
 
-      } catch (err) { 
+      this.rejectionReason = "";
 
-        console.error("연차 처리 오류:", err); 
+      this.showRejectModal = true;
 
-      } 
+    },
 
-    }, 
 
- 
+    closeRejectModal() {
 
-    // ✅ 반려 모달 열기 
+      this.showRejectModal = false;
 
-    openRejectModal(vacationId) { 
+      this.selectedVacationId = null;
 
-      this.selectedVacationId = vacationId; 
+      this.rejectionReason = "";
 
-      this.rejectionReason = ""; 
+    },
 
-      this.showRejectModal = true; 
 
-    }, 
+    async submitRejection() {
 
- 
+      if (!this.rejectionReason.trim()) {
 
-    // ✅ 반려 모달 닫기 
+        alert("반려 사유를 입력해주세요.");
 
-    closeRejectModal() { 
+        return;
 
-      this.showRejectModal = false; 
+      }
 
-      this.selectedVacationId = null; 
 
-      this.rejectionReason = ""; 
+      try {
 
-    }, 
+        const res = await this.$axios.post(
 
- 
+          `http://localhost:3000/api/manager/vacations/${this.selectedVacationId}/status`,
 
-    // ✅ 반려 처리 전송 
+          {
 
-    async submitRejection() { 
+            status: "반려",
 
-      if (!this.rejectionReason.trim()) { 
+            rejection_reason: this.rejectionReason,
 
-        alert("반려 사유를 입력해주세요."); 
+          }
 
-        return; 
+        );
 
-      } 
 
- 
+        if (res.data.success) {
 
-      try { 
+          alert("반려 처리 완료");
 
-        const res = await axios.post( 
+          this.closeRejectModal();
 
-          `http://localhost:3000/api/manager/vacations/${this.selectedVacationId}/status`, 
+          this.loadVacations();
 
-          { 
+        } else {
 
-            status: "반려", 
+          alert("처리 실패: " + res.data.message);
 
-            rejection_reason: this.rejectionReason, 
+        }
 
-          }, 
+      } catch (err) {
 
-          { withCredentials: true } 
+        console.error("반려 처리 오류:", err);
 
-        ); 
+      }
 
- 
+    },
 
-        if (res.data.success) { 
+  },
 
-          alert("반려 처리 완료"); 
-
-          this.closeRejectModal(); 
-
-          this.loadVacations(); 
-
-        } else { 
-
-          alert("처리 실패: " + res.data.message); 
-
-        } 
-
-      } catch (err) { 
-
-        console.error("반려 처리 오류:", err); 
-
-      } 
-
-    }, 
-
-  }, 
-
-}; 
+};
 
 </script> 
 

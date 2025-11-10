@@ -94,7 +94,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import adminProfileIcon from "@/assets/admin_profile_icon.png";
 import CalendarComponent from "@/components/CalendarComponent.vue";
 
@@ -114,9 +113,7 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await axios.get("http://localhost:3000/api/info", {
-          withCredentials: true,
-        });
+        const response = await this.$axios.get("http://localhost:3000/api/info");
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
@@ -132,7 +129,7 @@ export default {
     },
     async logout() {
       try {
-        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
+        await this.$axios.post("http://localhost:3000/api/logout");
         this.$router.push("/login");
       } catch (err) {
         console.error("로그아웃 실패:", err);

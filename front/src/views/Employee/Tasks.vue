@@ -370,8 +370,6 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   name: 'TaskView',
   data() {
@@ -438,7 +436,7 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        var response = await axios.get('http://localhost:3000/api/info', { params: { user_id: this.currentUser?.id } });
+        var response = await this.$axios.get('http://localhost:3000/api/info', { params: { user_id: this.currentUser?.id } });
         this.currentUser = response.data.user;
       } catch (error) {
         console.error('로그인 정보 불러오기 실패:', error);
@@ -446,7 +444,7 @@ export default {
     },
     async loadTasks() {
       try {
-        var response = await axios.get('http://localhost:3000/api/tasks');
+        var response = await this.$axios.get('http://localhost:3000/api/tasks');
         if (response.data.success) {
           this.tasks = response.data.tasks;
           console.log('업무 로드 완료:', this.tasks.length, '개');
@@ -493,7 +491,7 @@ export default {
 
       var deadline = this.newTask.deadlineDate + 'T' + this.newTask.deadlineTime;
 
-      var response = await axios.post('http://localhost:3000/api/tasks', {
+      var response = await this.$axios.post('http://localhost:3000/api/tasks', {
         title: this.newTask.title,
         deadline: deadline,
         estimated_time: this.newTask.estimatedTime,
@@ -523,7 +521,7 @@ export default {
       this.isRecommending = true;
 
       try {
-        var response = await axios.post('http://localhost:3000/api/tasks/ai-priority', {
+        var response = await this.$axios.post('http://localhost:3000/api/tasks/ai-priority', {
           tasks: this.incompleteTasks
         });
 
@@ -537,7 +535,7 @@ export default {
       }
     },
     async completeTask(id) {
-      var response = await axios.patch(`http://localhost:3000/api/tasks/${id}/complete`);
+      var response = await this.$axios.patch(`http://localhost:3000/api/tasks/${id}/complete`);
       if (response.data.success) {
         var task = this.tasks.find(t => t.id === id);
         if (task) {
@@ -552,7 +550,7 @@ export default {
         return;
       }
 
-      var response = await axios.delete(`http://localhost:3000/api/tasks/${id}`);
+      var response = await this.$axios.delete(`http://localhost:3000/api/tasks/${id}`);
       if (response.data.success) {
         this.tasks = this.tasks.filter(t => t.id !== id);
         this.aiResult = '';
@@ -689,7 +687,7 @@ export default {
         };
 
         try {
-          var response = await axios.post('http://localhost:3000/api/tasks', taskData);
+          var response = await this.$axios.post('http://localhost:3000/api/tasks', taskData);
 
           if (response.data.success) {
             this.tasks.push(response.data.task);

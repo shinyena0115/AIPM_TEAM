@@ -9,43 +9,39 @@
   </div> 
 </template> 
 
-<script> 
-import axios from "axios"; 
-export default { 
-  name: "LoginView", 
-  data() { 
-    return { 
-      form: { 
-        email: "", 
-        password: "", 
-      }, 
-    }; 
-  }, 
-  methods: { 
-    async login() { 
-      if (!this.form.email || !this.form.password) { 
-        alert("이메일과 비밀번호를 입력해주세요."); 
-        return; 
-      } 
-      try { 
-        const res = await axios.post("/api/login", this.form, { 
-          withCredentials: true, // ✅ 세션 쿠키 포함 
-        }); 
-        if (res.data.success) { 
-          const { user, redirect } = res.data; 
-          alert(`${user.name}님, 로그인 성공!`); 
-          // ✅ 백엔드에서 전달된 redirect 경로 사용 
-          this.$router.push(redirect || "/employee/tasks"); 
-        } else { 
-          alert(res.data.message || "로그인 실패"); 
-        } 
-      } catch (err) { 
-        console.error("❌ 로그인 실패:", err); 
-        alert("서버 오류가 발생했습니다."); 
-      } 
-    }, 
-  }, 
-}; 
+<script>
+export default {
+  name: "LoginView",
+  data() {
+    return {
+      form: {
+        email: "",
+        password: "",
+      },
+    };
+  },
+  methods: {
+    async login() {
+      if (!this.form.email || !this.form.password) {
+        alert("이메일과 비밀번호를 입력해주세요.");
+        return;
+      }
+      try {
+        const res = await this.$axios.post("/api/login", this.form);
+        if (res.data.success) {
+          const { user, redirect } = res.data;
+          alert(`${user.name}님, 로그인 성공!`);
+          this.$router.push(redirect || "/employee/tasks");
+        } else {
+          alert(res.data.message || "로그인 실패");
+        }
+      } catch (err) {
+        console.error("❌ 로그인 실패:", err);
+        alert("서버 오류가 발생했습니다.");
+      }
+    },
+  },
+};
 </script> 
 <style scoped> 
 .login-container { 

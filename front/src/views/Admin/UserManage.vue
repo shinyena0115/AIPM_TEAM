@@ -66,7 +66,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 
 export default {
@@ -88,13 +87,13 @@ export default {
     },
   },
   async created() {
-    const res = await axios.get("http://localhost:3000/admin/users");
+    const res = await this.$axios.get("http://localhost:3000/admin/users");
     this.users = res.data.map((u) => ({ ...u, newRole: u.role }));
   },
   methods: {
     async updateRole(user) {
       try {
-        await axios.put(
+        await this.$axios.put(
           `http://localhost:3000/admin/users/${user.user_id}/role`,
           { role: user.newRole }
         );

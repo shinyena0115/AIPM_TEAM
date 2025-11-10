@@ -74,8 +74,6 @@
 </template>
 
 <script>
-import axios from "axios";
-
 export default {
   name: "EmployeeVacation",
   data() {
@@ -94,9 +92,7 @@ export default {
   methods: {
     async loadVacations() {
       try {
-        const response = await axios.get("http://localhost:3000/api/vacations/me", {
-          withCredentials: true,
-        });
+        const response = await this.$axios.get("http://localhost:3000/api/vacations/me");
         if (response.data.success) {
           this.vacations = response.data.vacations;
         }
@@ -111,9 +107,7 @@ export default {
       }
 
       try {
-        const response = await axios.post("http://localhost:3000/api/vacations", this.form, {
-          withCredentials: true,
-        });
+        const response = await this.$axios.post("http://localhost:3000/api/vacations", this.form);
 
         if (response.data.success) {
           alert("연차 신청이 완료되었습니다!");

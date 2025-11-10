@@ -82,8 +82,6 @@
 </template>
 
 <script>
-import axios from "axios";
-
 export default {
   name: "VacationStatus",
   data() {
@@ -109,9 +107,7 @@ export default {
   methods: {
     async loadStatus() {
       try {
-        const response = await axios.get("http://localhost:3000/api/vacations/status", {
-          withCredentials: true,
-        });
+        const response = await this.$axios.get("http://localhost:3000/api/vacations/status");
         if (response.data.success) {
           this.status = response.data.status;
         }
@@ -121,9 +117,7 @@ export default {
     },
     async loadHistory() {
       try {
-        const response = await axios.get("http://localhost:3000/api/vacations/history", {
-          withCredentials: true,
-        });
+        const response = await this.$axios.get("http://localhost:3000/api/vacations/history");
         if (response.data.success) {
           this.history = response.data.history;
         }

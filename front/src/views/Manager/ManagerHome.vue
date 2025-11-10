@@ -170,105 +170,98 @@
 
  
 
-<script> 
+<script>
 
-import axios from "axios"; 
+import managerProfileIcon from "@/assets/manager_profile_icon.png";
 
-import managerProfileIcon from "@/assets/manager_profile_icon.png"; 
+import CalendarComponent from "@/components/CalendarComponent.vue";
 
-import CalendarComponent from "@/components/CalendarComponent.vue"; 
 
- 
+export default {
 
-export default { 
+  name: "ManagerHome",
 
-  name: "ManagerHome", 
+  components: { CalendarComponent },
 
-  components: { CalendarComponent }, 
+  data() {
 
-  data() { 
+    return {
 
-    return { 
+      currentUser: null,
 
-      currentUser: null, 
+      showDropdown: false,
 
-      showDropdown: false, 
+      managerIcon: managerProfileIcon,
 
-      managerIcon: managerProfileIcon, 
+    };
 
-    }; 
+  },
 
-  }, 
+  async created() {
 
-  async created() { 
+    await this.loadCurrentUser();
 
-    await this.loadCurrentUser(); 
+  },
 
-  }, 
+  methods: {
 
-  methods: { 
+    async loadCurrentUser() {
 
-    async loadCurrentUser() { 
+      try {
 
-      try { 
+        const response = await this.$axios.get("http://localhost:3000/api/info");
 
-        const response = await axios.get("http://localhost:3000/api/info", { 
+        if (response.data.isLogin) {
 
-          withCredentials: true, 
+          this.currentUser = response.data.user;
 
-        }); 
+        } else {
 
-        if (response.data.isLogin) { 
+          this.$router.push("/login");
 
-          this.currentUser = response.data.user; 
+        }
 
-        } else { 
+      } catch (error) {
 
-          this.$router.push("/login"); 
+        console.error("사용자 정보 불러오기 실패:", error);
 
-        } 
+        this.$router.push("/login");
 
-      } catch (error) { 
+      }
 
-        console.error("사용자 정보 불러오기 실패:", error); 
+    },
 
-        this.$router.push("/login"); 
+    toggleDropdown() {
 
-      } 
+      this.showDropdown = !this.showDropdown;
 
-    }, 
+    },
 
-    toggleDropdown() { 
+    async logout() {
 
-      this.showDropdown = !this.showDropdown; 
+      try {
 
-    }, 
+        await this.$axios.post("http://localhost:3000/api/logout");
 
-    async logout() { 
+        this.$router.push("/login");
 
-      try { 
+      } catch (err) {
 
-        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true }); 
+        console.error("로그아웃 실패:", err);
 
-        this.$router.push("/login"); 
+      }
 
-      } catch (err) { 
+    },
 
-        console.error("로그아웃 실패:", err); 
+    goTo(path) {
 
-      } 
+      this.$router.push(path);
 
-    }, 
+    },
 
-    goTo(path) { 
+  },
 
-      this.$router.push(path); 
-
-    }, 
-
-  }, 
-
-}; 
+};
 
 </script> 
 

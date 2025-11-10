@@ -84,8 +84,6 @@
 </template>
 
 <script>
-import axios from "axios";
-// ✅ 이미지 import 방식
 import userProfileIcon from "@/assets/user_profile_icon.png";
 import CalendarComponent from "@/components/CalendarComponent.vue";
 
@@ -96,7 +94,7 @@ export default {
     return {
       currentUser: null,
       showDropdown: false,
-      userIcon: userProfileIcon, // 여기서 이미지 바인딩
+      userIcon: userProfileIcon,
       checkInTime: null,
       checkOutTime: null,
     };
@@ -107,9 +105,7 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await axios.get("http://localhost:3000/api/info", {
-          withCredentials: true,
-        });
+        const response = await this.$axios.get("http://localhost:3000/api/info");
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
@@ -125,7 +121,7 @@ export default {
     },
     async logout() {
       try {
-        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
+        await this.$axios.post("http://localhost:3000/api/logout");
         this.$router.push("/login");
       } catch (err) {
         console.error("로그아웃 실패:", err);
