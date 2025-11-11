@@ -1,13 +1,13 @@
-<template> 
-  <div class="login-container"> 
-    <h1>로그인</h1> 
-    <section> 
-      <input v-model="form.email" type="email" placeholder="이메일" /> 
-      <input v-model="form.password" type="password" placeholder="비밀번호" /> 
-    </section> 
-    <button class="login-btn" @click="login">로그인</button> 
-  </div> 
-</template> 
+<template>
+  <div class="login-container">
+    <h1>로그인</h1>
+    <section>
+      <input v-model="form.email" type="email" placeholder="이메일" @keyup.enter="login" />
+      <input v-model="form.password" type="password" placeholder="비밀번호" @keyup.enter="login" />
+    </section>
+    <button class="login-btn" @click="login">로그인</button>
+  </div>
+</template>
 
 <script>
 export default {
@@ -42,46 +42,46 @@ export default {
     },
   },
 };
-</script> 
-<style scoped> 
-.login-container { 
-  max-width: 400px; 
-  margin: 100px auto; 
-  background: #fff; 
-  border-radius: 5px; 
-  padding: 30px; 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
-} 
+</script>
 
-h1 { 
-  text-align: center; 
-  color: #000000; 
-  margin-bottom: 30px; 
+<style scoped>
+.login-container {
+  max-width: 400px;
+  margin: 100px auto;
+  background: #fff;
+  border-radius: 5px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
 
-} 
+h1 {
+  text-align: center;
+  color: #000000;
+  margin-bottom: 30px;
+}
 
-input { 
-  width: 100%; 
-  padding: 10px; 
-  margin-bottom: 15px; 
-  border: 1px solid #ccc; 
-  border-radius: 4px; 
-  font-size: 1rem; 
-} 
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
 
-.login-btn { 
-  width: 100%; 
-  padding: 12px; 
+.login-btn {
+  width: 100%;
+  padding: 12px;
   background: #000000;
-  color: white; 
-  border: none; 
-  border-radius: 5px; 
-  font-size: 1.2rem; 
-  cursor: pointer; 
-} 
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
 
-.login-btn:hover { 
-  background: #333; 
-} 
+.login-btn:hover {
+  background: #333;
+}
 </style> 
