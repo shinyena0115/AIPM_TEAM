@@ -24,7 +24,7 @@ var connection = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process
 // ✅ 2. 모델 불러오기 및 정의 실행
 // ======================================
 var define = require("./model.js");
-const { User, Department, Team, Task, Vacation } = define(connection);
+const { User, Department, Team, Task, Vacation, Attendance, PeerReview } = define(connection); 
 
 // ✅ 전역 모델 등록 (라우터에서 바로 사용 가능)
 global.User = User;
@@ -32,7 +32,8 @@ global.Department = Department;
 global.Team = Team;
 global.Task = Task;
 global.Vacation = Vacation;
-
+global.Attendance = Attendance; 
+global.PeerReview = PeerReview; 
 // ======================================
 // ✅ 3. 세션 설정 (MySQL 세션 저장소)
 // ======================================
@@ -87,6 +88,11 @@ var managerVacations = require("./routes/manager/vacations");
 var employeeTasksRouter = require("./routes/employee/tasks");
 var aiTaskRouter = require("./routes/api/apiTask");
 var aiVacationRouter = require("./routes/api/apiVacation");
+
+var attendanceRouter = require("./routes/employee/attendance");
+var peerReviewRouter = require("./routes/employee/peerReview");
+
+
 // ✅ 절대경로로 calendar.js 확실하게 로드
 const calendarRouterPath = path.join(__dirname, "routes", "manager", "calendar.js");
 console.log("📁 Calendar Router 경로:", calendarRouterPath);
@@ -118,6 +124,12 @@ app.use("/api/ai", aiTaskRouter);
 app.use("/api/tasks", employeeTasksRouter);
 // ✅ 추가: AI 연차 판단 엔드포인트 등록
 app.use("/api/ai/vacations", aiVacationRouter);
+
+app.use("/api/attendance", attendanceRouter);
+app.use("/api/peer-review", peerReviewRouter);
+
+
+
 
 // ✅ Calendar 라우터 등록
 if (calendarRouter) {
