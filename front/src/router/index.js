@@ -11,7 +11,7 @@ import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
 import ManagerVacation from '../views/Manager/ManagerVacation.vue' 
 import ManagerHome from '../views/Manager/ManagerHome.vue' 
 import VacationStatus from '../views/Employee/VacationStatus.vue'
-
+import PeerReview from '../views/Employee/PeerReview.vue'
 
 const routes = [
   {
@@ -28,16 +28,12 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
   { 
-
     path: '/login', 
-
     name: 'Login', 
-
     component: Login, 
-
   }, 
 
-   { 
+  { 
     path: '/register', 
     name: 'Register', 
     component: Register, // ✅ 회원가입 페이지 등록 
@@ -48,88 +44,61 @@ const routes = [
     name: 'DepartmentCreate', 
     component: DepartmentCreate 
   }, 
-     { 
+
+  { 
     path: '/register', 
     name: 'Register', 
     component: Register, 
   },
+
   { 
+    path: '/admin/users', 
+    name: 'UserManage', 
+    component: UserManage 
+  }, 
 
-  path: '/admin/users', 
-
-  name: 'UserManage', 
-
-  component: UserManage 
-
-}, 
-{ 
-
+  { 
     path: '/admin/home', // 
-
     name: 'AdminHome', 
-
     component: AdminHome 
-
   },
 
   //추가된 사원용 홈(대시보드)
   { 
     path: '/employee/home', // ✅ 추가된 사원용 홈(대시보드) 
-
     name: 'EmployeeHome', 
-
     component: EmployeeHome 
   },
  
 
  { 
-
     path: '/employee/tasks', 
-
     name: 'EmployeeTasks', 
-
     component: Tasks // ✅ 사원용 업무페이지 라우트 등록 
-
   }, 
 
   {
-
     path: '/employee/vacation', // ✅ 추가된 연차신청 페이지
-
     name: 'EmployeeVacation',
-
     component: EmployeeVacation
-
   },
 
   {
-
     path: '/employee/vacation-status', // ✅ 연차 현황 페이지 (이재혁)
-
     name: 'VacationStatus',
-
     component: VacationStatus
-
   },
 
    {
-
     path: '/manager/home', 
-
     name: 'ManagerHome', 
-
     component: ManagerHome 
-
   }, 
 
    { 
-
     path: '/admin/home', // ✅ 관리자 대시보드 
-
     name: 'AdminHome', 
-
     component: AdminHome 
-
   },
   { 
     path: '/manager/vacation', // ✅ 매니저 연차 승인 관리 페이지 
@@ -142,6 +111,17 @@ const routes = [
     component: ManagerHome 
 
   }, 
+
+  {
+  path: '/employee/peer-review',
+  name: 'PeerReview',
+  component: PeerReview
+  },
+  
+
+  
+
+  
 
 ]
 
