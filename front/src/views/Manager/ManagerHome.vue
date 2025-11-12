@@ -30,7 +30,7 @@
 
       <!-- 기능 카드 -->
       <div class="feature-grid">
-        <div class="feature-card" @click="goTo('/manager/team-tasks')">
+        <div class="feature-card" @click="goTo('/manager/team-task-dashboard')">
           <h3>팀 업무 현황</h3>
           <div class="feature-desc">
             <p>팀원들의 업무 상태와 진행률을</p>
