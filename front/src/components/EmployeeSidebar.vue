@@ -1,7 +1,5 @@
 <template>
   <aside class="sidebar">
-    <div class="logo">AIPM Employee</div>
-
     <nav class="menu">
       <ul>
         <li
@@ -23,6 +21,15 @@
         >
           연차 관리
         </li>
+
+        <li
+          @click="$router.push('/employee/peer-review')"
+          :class="{ active: isActive('/employee/peer-review') }"
+        >
+          동료 평가
+        </li>
+
+        
 
         
       </ul>
@@ -53,12 +60,6 @@ export default {
   flex-direction: column;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-  color: #111827;
-}
 
 /* ===== 메뉴 스타일 ===== */
 .menu ul {
