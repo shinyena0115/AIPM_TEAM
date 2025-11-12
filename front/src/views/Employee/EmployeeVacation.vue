@@ -1,102 +1,106 @@
 <template>
   <div class="employee-layout">
-    <!-- ✅ 왼쪽 고정 사이드바 -->
-    <EmployeeSidebar class="sidebar" />
+    <!-- ✅ 상단 고정 헤더 -->
+    <EmployeeHeader class="header-fixed" @toggle-sidebar="toggleSidebar" />
 
-    <!-- ✅ 오른쪽 메인 영역 -->
-    <div class="main-content">
-      <!-- ✅ 상단 네비게이션 바 -->
-      <header class="top-nav">
-        <div class="nav-left">
-          <h2>연차 관리 시스템</h2>
-        </div>
-        <div class="nav-right">
+    <!-- ✅ 사이드바 + 메인 콘텐츠 -->
+    <div class="content-area">
+      
+      <!-- ✅ 왼쪽 고정 사이드바 (토글 가능) -->
+      <EmployeeSidebar
+        v-show="showSidebar"
+        class="sidebar"
+      />
+
+      <!-- ✅ 오른쪽 메인 영역 -->
+      <div class="main-content" :class="{ 'sidebar-hidden': !showSidebar }">
+        <!-- ✅ 상단 네비게이션 -->
+        <div class="page-nav">
           <button
-    @click="$router.push('/employee/vacation')"
-    :class="['nav-btn', { active: $route.path === '/employee/vacation' }]"
-  >
-    연차 신청
-  </button>
-  <button
-    @click="$router.push('/employee/vacation-status')"
-    :class="['nav-btn', { active: $route.path === '/employee/vacation-status' }]"
-  >
-    연차 현황
-  </button>
-  <button
-    @click="$router.push('/employee/vacation-notice')"
-    :class="['nav-btn', { active: $route.path === '/employee/vacation-notice' }]"
-  >
-    연차 게시판
-  </button>
-</div>
-  
-      </header>
-
-      <!-- ✅ 실제 페이지 내용 -->
-      <div class="vacation-page">
-        <!-- 헤더 -->
-        <div class="header">
-          <h1>연차 신청</h1>
-          <p>근무일정 및 연차 내역을 확인하고 신청하세요.</p>
-        </div>
-
-        <!-- 연차 신청 폼 -->
-        <div class="form-card">
-          <h2>연차 신청</h2>
-
-          <div class="form-grid">
-            <div class="form-group">
-              <label>시작일</label>
-              <input v-model="form.startDate" type="date" />
-            </div>
-
-            <div class="form-group">
-              <label>종료일</label>
-              <input v-model="form.endDate" type="date" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>사유</label>
-            <textarea v-model="form.reason" placeholder="예: 가족행사, 휴식 등"></textarea>
-          </div>
-
-          <button @click="submitVacation" class="submit-btn">
-            연차 신청하기
+            @click="$router.push('/employee/vacation')"
+            :class="['nav-btn', { active: $route.path === '/employee/vacation' }]"
+          >
+            연차 신청
+          </button>
+          <button
+            @click="$router.push('/employee/vacation-status')"
+            :class="['nav-btn', { active: $route.path === '/employee/vacation-status' }]"
+          >
+            연차 현황
+          </button>
+          <button
+            @click="$router.push('/employee/vacation-notice')"
+            :class="['nav-btn', { active: $route.path === '/employee/vacation-notice' }]"
+          >
+            연차 게시판
           </button>
         </div>
 
-        <!-- 연차 신청 내역 -->
-        <div class="list-card">
-          <h2>📋 연차 신청 내역</h2>
+        <!-- ✅ 실제 페이지 내용 -->
+        <div class="vacation-page">
+          <div class="header">
+            <h1>연차 신청</h1>
+            <p>근무일정 및 연차 내역을 확인하고 신청하세요.</p>
+          </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>신청일</th>
-                <th>기간</th>
-                <th>사유</th>
-                <th>상태</th>
-                <th>반려 사유</th>
-              </tr>
-            </thead>
+          <!-- 연차 신청 폼 -->
+          <div class="form-card">
+            <h2>연차 신청</h2>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>시작일</label>
+                <input v-model="form.startDate" type="date" />
+              </div>
 
-            <tbody>
-              <tr v-for="vac in vacations" :key="vac.vacation_id">
-                <td>{{ formatDate(vac.createdAt) }}</td>
-                <td>{{ vac.startDate }} ~ {{ vac.endDate }}</td>
-                <td>{{ vac.reason }}</td>
-                <td>
-                  <span :class="'status ' + vac.status">{{ vac.status }}</span>
-                </td>
-                <td>
-                  <span v-if="vac.status === '반려'">{{ vac.rejection_reason || '-' }}</span>
-                  <span v-else>-</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              <div class="form-group">
+                <label>종료일</label>
+                <input v-model="form.endDate" type="date" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>사유</label>
+              <textarea
+                v-model="form.reason"
+                placeholder="예: 가족행사, 휴식 등"
+              ></textarea>
+            </div>
+
+            <button @click="submitVacation" class="submit-btn">
+              연차 신청하기
+            </button>
+          </div>
+
+          <!-- 연차 신청 내역 -->
+          <div class="list-card">
+            <h2>📋 연차 신청 내역</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>신청일</th>
+                  <th>기간</th>
+                  <th>사유</th>
+                  <th>상태</th>
+                  <th>반려 사유</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr v-for="vac in vacations" :key="vac.vacation_id">
+                  <td>{{ formatDate(vac.createdAt) }}</td>
+                  <td>{{ vac.startDate }} ~ {{ vac.endDate }}</td>
+                  <td>{{ vac.reason }}</td>
+                  <td>
+                    <span :class="'status ' + vac.status">{{ vac.status }}</span>
+                  </td>
+                  <td>
+                    <span v-if="vac.status === '반려'">{{ vac.rejection_reason || '-' }}</span>
+                    <span v-else>-</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -105,13 +109,15 @@
 
 <script>
 import axios from "axios";
+import EmployeeHeader from "@/components/EmployeeHeader.vue";
 import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
 
 export default {
   name: "EmployeeVacation",
-  components: { EmployeeSidebar },
+  components: { EmployeeHeader, EmployeeSidebar },
   data() {
     return {
+      showSidebar: true, // ✅ 사이드바 표시 상태
       form: { startDate: "", endDate: "", reason: "" },
       vacations: [],
     };
@@ -120,6 +126,9 @@ export default {
     await this.loadVacations();
   },
   methods: {
+    toggleSidebar() {
+      this.showSidebar = !this.showSidebar;
+    },
     async loadVacations() {
       try {
         const res = await axios.get("http://localhost:3000/api/vacations/me", {
@@ -157,64 +166,84 @@ export default {
 /* ===== 전체 레이아웃 ===== */
 .employee-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f9fafb;
   font-family: "Pretendard", "Noto Sans KR", sans-serif;
 }
 
-/* ===== 사이드바 (고정) ===== */
-.sidebar {
+/* ===== 상단 헤더 고정 ===== */
+.header-fixed {
   position: fixed;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 64px;
+  z-index: 50;
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== 사이드바 + 메인 ===== */
+.content-area {
+  display: flex;
+  margin-top: 64px; /* 헤더 높이만큼 띄움 */
+}
+
+/* ===== 사이드바 (고정) ===== */
+.sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
   width: 240px;
-  height: 100vh;
+  height: calc(100vh - 64px);
   background-color: #ffffff;
   border-right: 1px solid #e5e7eb;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
   z-index: 20;
+  transition: all 0.3s ease;
 }
 
+
+/* 사이드바가 닫혔을 때 메인 확장 */
+.sidebar-hidden {
+  margin-left: 0;
+}
 /* ===== 메인 영역 ===== */
+
 .main-content {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 240px; /* 사이드바가 있을 때 */
+  padding: 2rem;
+  min-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-/* ===== 상단 네비게이션 ===== */
-.top-nav {
-  position: sticky;
-  top: 0;
-  z-index: 15;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 0.75rem 2rem;
-  height: 64px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease; /* 부드럽게 이동 */
 }
 
-.nav-left h2 {
-  font-size: 1.1rem;
-  color: #10b981;
-  font-weight: 700;
+/* 사이드바가 닫혔을 때 메인 확장 및 중앙 배치 */
+.main-content.sidebar-hidden {
+  margin-left: 0;
+  width: 100%;
+  align-items: center; /* 내부 컨텐츠도 중앙 정렬 유지 */
 }
 
-.nav-right {
+
+/* ===== 페이지 내 네비게이션 ===== */
+.page-nav {
   display: flex;
-  gap: 0.75rem;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.8rem;
 }
 
 .nav-btn {
   background-color: transparent;
   color: #374151;
   border: 1px solid #d1d5db;
-  padding: 0.45rem 0.9rem;
+  padding: 0.45rem 1rem;
   border-radius: 6px;
   font-size: 0.9rem;
   cursor: pointer;
@@ -226,20 +255,18 @@ export default {
   border-color: #10b981;
   color: white;
 }
-/* ✅ 현재 활성화된 페이지용 버튼 */
+
 .nav-btn.active {
   background-color: #10b981;
   color: white;
   border-color: #10b981;
   font-weight: 600;
 }
+
 /* ===== 본문 ===== */
 .vacation-page {
-  flex: 1;
-  padding: 2.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: 100%;
+  max-width: 900px;
 }
 
 /* ===== 헤더 ===== */
@@ -267,7 +294,6 @@ export default {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   padding: 2rem;
   width: 100%;
-  max-width: 900px;
   margin-bottom: 2rem;
 }
 

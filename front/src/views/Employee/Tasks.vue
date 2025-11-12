@@ -1,12 +1,16 @@
 <template>
   <div class="employee-layout">
-    <!-- ✅ 왼쪽 고정 사이드바 -->
-    <EmployeeSidebar class="sidebar" />
+    <!-- ✅ 상단 고정 헤더 -->
+    <EmployeeHeader @toggleSidebar="toggleSidebar" />
+
+    <!-- ✅ 왼쪽 사이드바 (토글 가능) -->
+    <EmployeeSidebar v-if="showSidebar" class="sidebar" />
 
     <!-- ✅ 오른쪽 메인 영역 -->
-    <div class="main-content">
-  <v-container>
-    <h1>TaskAI - AI 업무 우선순위 시스템</h1>
+    <div class="main-content" :class="{ 'sidebar-hidden': !showSidebar }">
+      <v-container>
+        <h1>TaskAI - AI 업무 우선순위 시스템</h1>
+
 
     <!-- 오늘의 추천 업무 -->
     <v-card v-if="todayRecommendations.length > 0" class="my-4">
@@ -414,12 +418,13 @@
 <script>
 import axios from 'axios';
 import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
-
+import EmployeeHeader from "@/components/EmployeeHeader.vue"; // ✅ 헤더 임포트
 export default {
   name: 'TaskView',
-  components: { EmployeeSidebar },
+   components: { EmployeeSidebar, EmployeeHeader },
   data() {
     return {
+     showSidebar: true, // ✅ 사이드바 표시 여부
       currentUser: null,
       tasks: [],
       newTask: {
@@ -488,6 +493,9 @@ export default {
   },
 
   methods: {
+   toggleSidebar() {
+      this.showSidebar = !this.showSidebar;
+    },
     async loadCurrentUser() {
       try {
         const response = await axios.get('http://localhost:3000/api/info', {
@@ -736,7 +744,7 @@ export default {
           title: task.title,
           description: task.reason,
           deadline: new Date(`${task.deadlineDate}T${task.deadlineTime}`),
-          estimated_time: task.estimatedTime,
+          estimated_time: task.estimatedTime, 
           difficulty: task.difficulty,
           taskType: task.taskType,
           importance: task.importance
@@ -765,6 +773,24 @@ export default {
 
 <style scoped>
 
+/* ===== 메인 영역 ===== */
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  margin-top: 64px; /* 헤더 높이만큼 아래로 내림 */
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 64px);
+  transition: all 0.3s ease;
+}
+
+/* 사이드바 숨기면 메인 전체 확장 */
+.main-content.sidebar-hidden {
+  margin-left: 0;
+}
+
+
+
 .employee-layout {
   display: flex;
   min-height: 100vh;
@@ -772,17 +798,18 @@ export default {
   font-family: "Pretendard", "Noto Sans KR", sans-serif;
 }
 
-/* ===== 사이드바 (고정) ===== */
+/* ===== 사이드바 (헤더 아래 배치) ===== */
 .sidebar {
   position: fixed;
-  top: 0;
+  top: 60px; /* ✅ 헤더 높이만큼 내림 */
   left: 0;
   width: 240px;
-  height: 100vh;
+  height: calc(100vh - 60px); /* ✅ 화면 전체 높이에서 헤더 제외 */
   background-color: #ffffff;
   border-right: 1px solid #e5e7eb;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
-  z-index: 20;
+  z-index: 1000;
+  transition: all 0.3s ease;
 }
 
 /* ===== 메인 영역 ===== */
