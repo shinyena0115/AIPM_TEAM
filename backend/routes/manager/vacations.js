@@ -3,7 +3,7 @@ const router = express.Router();
 
 const Vacation = global.Vacation;
 const User = global.User;
-
+const Team = global.Team;
 // ✅ 같은 팀 직원 연차 목록 조회
 router.get("/", async (req, res) => {
   try {
@@ -29,6 +29,13 @@ router.get("/", async (req, res) => {
           as: "user",
           where: { team_id: manager.team_id },
           attributes: ["user_id", "name", "email", "team_id"],
+          include: [
+            {
+              model: Team,
+              as: "Team",
+              attributes: ["name"],
+            },
+          ]
         },
       ],
       order: [["createdAt", "DESC"]],
