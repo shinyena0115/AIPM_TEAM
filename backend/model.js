@@ -125,6 +125,86 @@ const Vacation = connection.define("Vacation", {
   },
   });
 
+// ✅ 출퇴근(Attendance) 테이블
+const Attendance = connection.define("attendances", {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: { model: "users", key: "user_id" },
+  },
+  date: {
+    type: DataTypes.DATEONLY,
+    allowNull: false,
+    defaultValue: Sequelize.NOW,
+  },
+  check_in: {
+    type: DataTypes.TIME,
+    allowNull: true,
+  },
+  check_out: {
+    type: DataTypes.TIME,
+    allowNull: true,
+  },
+  createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+});
+
+
+
+// ✅ Peer Review(동료 평가) 테이블
+const PeerReview = connection.define("peer_reviews", {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+
+  reviewer_id: { // 평가자
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: { model: "users", key: "user_id" },
+  },
+
+  reviewee_id: { // 평가 대상자
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: { model: "users", key: "user_id" },
+  },
+
+  teamwork: { // 협업
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    comment: "1~5점 척도",
+  },
+
+  communication: { // 커뮤니케이션
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+
+  responsibility: { // 책임감
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+
+  comment: { // 추가 코멘트
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+
+  createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+});
+
+// ✅ 관계 설정
+User.hasMany(PeerReview, { foreignKey: "reviewer_id", as: "GivenReviews" });
+User.hasMany(PeerReview, { foreignKey: "reviewee_id", as: "ReceivedReviews" });
+PeerReview.belongsTo(User, { foreignKey: "reviewer_id", as: "Reviewer" });
+PeerReview.belongsTo(User, { foreignKey: "reviewee_id", as: "Reviewee" });
+
+
+
+
+// ✅ 관계 설정
+User.hasMany(Attendance, { foreignKey: "user_id", as: "Attendances" });
+Attendance.belongsTo(User, { foreignKey: "user_id", as: "User" });
 
 
 
@@ -165,7 +245,7 @@ Vacation.belongsTo(User, { foreignKey: "user_id", as: "user" }); // 👈 as 추�
   
 
 
-    return { User, Department, Team, Task, Vacation  };
+    return { User, Department, Team, Task, Vacation, Attendance, PeerReview };
 }
 
 module.exports = define;
