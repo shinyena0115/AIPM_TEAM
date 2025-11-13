@@ -148,8 +148,8 @@ export default {
   border: none;
   flex-shrink: 0;
   position: sticky;
-  top: 64px;
-  height: calc(100vh - 64px);
+  top: 60px;
+  height: calc(100vh - 60px);
   overflow: hidden;
   z-index: 1100;
 }
@@ -170,8 +170,8 @@ export default {
   padding: 20px;
   flex-shrink: 0;
   position: sticky;
-  top: 64px;
-  height: calc(100vh - 64px);
+  top: 60px;
+  height: calc(100vh - 60px);
   overflow-y: auto;
 }
 
