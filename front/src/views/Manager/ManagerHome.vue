@@ -75,13 +75,13 @@
 <script>
 import managerProfileIcon from "@/assets/manager_profile_icon.png";
 import ManagerCalendarComponent from "@/components/ManagerCalendarComponent.vue";
-import ManagerSidebar from "@/components/ManagerSidebar.vue"; // ✅ 추가
+import ManagerSidebar from "@/components/ManagerSidebar.vue";
 
 export default {
   name: "ManagerHome",
   components: {
     ManagerCalendarComponent,
-    ManagerSidebar, // ✅ 등록
+    ManagerSidebar,
   },
   data() {
     return {
@@ -96,9 +96,13 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await this.$axios.get("http://localhost:3000/api/info", {
-          withCredentials: true,
-        });
+       const response = await this.$axios.get("http://localhost:3000/api/info", {
+  withCredentials: true,
+  headers: {
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+  },
+});
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
@@ -126,6 +130,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .dashboard-container {
