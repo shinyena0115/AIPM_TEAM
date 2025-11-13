@@ -20,22 +20,22 @@
 
  
 
-      <div 
-
-        v-for="(day, index) in daysInMonthView" 
-
-        :key="index" 
-
-        class="day-box" 
-
-        :class="{ 'is-today': isToday(day), 'is-empty': !day }" 
-
-      > 
-
-        <span v-if="day">{{ day.getDate() }}</span> 
-
-        <div v-if="day && hasEvent(day)" class="event-dot"></div> 
-
+      <div
+        v-for="(day, index) in daysInMonthView"
+        :key="index"
+        class="day-box"
+        :class="{ 'is-today': isToday(day), 'is-empty': !day, 'has-tasks': hasEvent(day) }"
+        @click="selectDate(day)"
+      >
+        <span v-if="day">{{ day.getDate() }}</span>
+        <div
+          v-if="day && hasEvent(day)"
+          class="event-dot"
+          :style="{ backgroundColor: getUrgencyColor(day) }"
+        ></div>
+        <span v-if="day && getTasksForDay(day).length > 0" class="task-count">
+          {{ getTasksForDay(day).length }}
+        </span>
       </div> 
 
     </div> 
@@ -46,70 +46,58 @@
 
  
 
-<script> 
+<script>
 
-export default { 
-
-  name: "Calendar", 
-
-  data() { 
-
-    return { 
-
-      currentYear: new Date().getFullYear(), 
-
-      currentMonth: new Date().getMonth(), 
-
-      weekDays: ["일", "월", "화", "수", "목", "금", "토"], 
-
-      events: [ 
-
-        // ✅ 나중엔 DB에서 불러오기 
-
-         
-
-      ], 
-
-    }; 
-
+export default {
+  name: "Calendar",
+  props: {
+    tasks: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+      currentYear: new Date().getFullYear(),
+      currentMonth: new Date().getMonth(),
+      weekDays: ["일", "월", "화", "수", "목", "금", "토"],
+      selectedDate: null,
+      showTasksPopup: false
+    };
   }, 
 
-  computed: { 
+  computed: {
+    daysInMonthView() {
+      const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+      const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+      const days = [];
 
-    daysInMonthView() { 
+      // 앞쪽 빈칸
+      for (let i = 0; i < firstDay.getDay(); i++) {
+        days.push(null);
+      }
 
-      const firstDay = new Date(this.currentYear, this.currentMonth, 1); 
+      // 실제 날짜
+      for (let i = 1; i <= lastDay.getDate(); i++) {
+        days.push(new Date(this.currentYear, this.currentMonth, i));
+      }
 
-      const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0); 
-
-      const days = []; 
-
- 
-
-      // 앞쪽 빈칸 
-
-      for (let i = 0; i < firstDay.getDay(); i++) { 
-
-        days.push(null); 
-
-      } 
-
- 
-
-      // 실제 날짜 
-
-      for (let i = 1; i <= lastDay.getDate(); i++) { 
-
-        days.push(new Date(this.currentYear, this.currentMonth, i)); 
-
-      } 
-
- 
-
-      return days; 
-
-    }, 
-
+      return days;
+    },
+    // 날짜별 업무 개수 계산
+    tasksByDate() {
+      const taskMap = {};
+      this.tasks.forEach(task => {
+        if (task.deadline) {
+          const dateStr = new Date(task.deadline).toISOString().split('T')[0];
+          if (!taskMap[dateStr]) {
+            taskMap[dateStr] = [];
+          }
+          taskMap[dateStr].push(task);
+        }
+      });
+      return taskMap;
+    }
   }, 
 
   methods: { 
@@ -164,19 +152,51 @@ export default {
 
     }, 
 
-    hasEvent(day) { 
+    hasEvent(day) {
+      if (!day) return false;
+      const dateStr = day.toISOString().split("T")[0];
+      return this.tasksByDate[dateStr] && this.tasksByDate[dateStr].length > 0;
+    },
+    getTasksForDay(day) {
+      if (!day) return [];
+      const dateStr = day.toISOString().split("T")[0];
+      return this.tasksByDate[dateStr] || [];
+    },
+    // 긴급도에 따른 색상 반환
+    getUrgencyColor(day) {
+      const tasks = this.getTasksForDay(day);
+      if (tasks.length === 0) return null;
 
-      return this.events.some( 
+      // 가장 긴급한 업무의 색상 표시
+      const now = new Date();
+      const hasUrgent = tasks.some(task => {
+        const deadline = new Date(task.deadline);
+        const hoursLeft = (deadline - now) / (1000 * 60 * 60);
+        return hoursLeft <= 24;
+      });
 
-        (e) => e.date === day.toISOString().split("T")[0] 
+      if (hasUrgent) return '#ef4444'; // 빨강
 
-      ); 
+      const hasSoon = tasks.some(task => {
+        const deadline = new Date(task.deadline);
+        const hoursLeft = (deadline - now) / (1000 * 60 * 60);
+        return hoursLeft <= 72;
+      });
 
-    }, 
+      if (hasSoon) return '#f59e0b'; // 노랑
 
-  }, 
-
-}; 
+      return '#10b981'; // 초록
+    },
+    selectDate(day) {
+      if (!day) return;
+      this.selectedDate = day;
+      const tasks = this.getTasksForDay(day);
+      if (tasks.length > 0) {
+        this.$emit('date-selected', { date: day, tasks });
+      }
+    }
+  },
+};
 
 </script> 
 
@@ -322,24 +342,37 @@ export default {
 
  
 
-.event-dot { 
+.event-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /* 색상은 동적으로 설정됨 */
+}
 
-  position: absolute; 
+.task-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #10b981;
+  color: white;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 8px;
+  font-weight: 600;
+}
 
-  bottom: 6px; 
+.day-box.has-tasks {
+  font-weight: 600;
+  cursor: pointer;
+}
 
-  left: 50%; 
-
-  transform: translateX(-50%); 
-
-  width: 6px; 
-
-  height: 6px; 
-
-  border-radius: 50%; 
-
-  background: #4f46e5; 
-
-} 
+.day-box.has-tasks:hover {
+  background: #e0f2fe !important;
+  transform: scale(1.05);
+}
 
 </style> 

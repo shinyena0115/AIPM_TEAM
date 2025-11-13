@@ -15,7 +15,7 @@ function define(connection) {
     email: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
+      // unique: true, // 자동 인덱스 생성 방지를 위해 주석 처리
     },
     password: {
       type: DataTypes.STRING(255),
@@ -39,14 +39,18 @@ function define(connection) {
       allowNull: true,
       references: { model: "teams", key: "id" },
     },
+  }, {
+    indexes: [] // 자동 인덱스 생성 완전히 비활성화
   });
 
   // ✅ 부서 테이블
   const Department = connection.define("departments", {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    name: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    name: { type: DataTypes.STRING(100), allowNull: false }, // unique 제거
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  }, {
+    indexes: [] // 자동 인덱스 생성 완전히 비활성화
   });
 
   // ✅ 팀 테이블
@@ -60,6 +64,8 @@ function define(connection) {
     },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  }, {
+    indexes: [] // 자동 인덱스 생성 완전히 비활성화
   });
 
   // ✅ 업무(Task) 테이블
@@ -108,6 +114,8 @@ const Task = connection.define("tasks", {
   },
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+}, {
+  indexes: [] // 자동 인덱스 생성 완전히 비활성화
 });
 
 const Vacation = connection.define("Vacation", {
@@ -123,6 +131,8 @@ const Vacation = connection.define("Vacation", {
     allowNull: true,
     comment: "매니저가 반려할 때 입력한 사유",
   },
+  }, {
+    indexes: [] // 자동 인덱스 생성 완전히 비활성화
   });
 
 
@@ -146,14 +156,15 @@ User.hasMany(Vacation, { foreignKey: "user_id" });
   Vacation.belongsTo(User, { foreignKey: "user_id" });
 
   // ✅ 테이블 생성 (force: false → 기존 데이터 유지)
-  connection.sync({ alter: true });
+  // alter: true는 인덱스 중복 문제를 일으킬 수 있어서 주석 처리
+  // connection.sync({ alter: true });
 
     // ======================
   // ✅ 동기화 (테이블 초기화)
   // ======================
   //connection.sync({ force: true })
-  //  .then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
-  // .catch(err => console.error("❌ DB 초기화 오류:", err));
+  //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
+  //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
   
 

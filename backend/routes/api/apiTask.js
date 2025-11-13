@@ -5,6 +5,7 @@ var openaiClient = new OpenAI();
 var multer = require('multer');
 var fs = require('fs');
 var path = require('path');
+var pdfParse = require('pdf-parse');
 const Task = global.Task;
 
 
@@ -14,16 +15,16 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// Multer 설정 (이미지만 업로드)
-var upload = multer({ 
+// Multer 설정 (이미지 + PDF 업로드)
+var upload = multer({
   dest: uploadDir,
   fileFilter: (req, file, cb) => {
-    // 이미지만 허용
-    var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    // 이미지와 PDF 허용
+    var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('JPG, PNG 이미지 파일만 업로드 가능합니다'), false);
+      cb(new Error('JPG, PNG 이미지 또는 PDF 파일만 업로드 가능합니다'), false);
     }
   }
 });
@@ -43,34 +44,6 @@ router.use((req, res, next) => {
 // 메모리에 업무 저장
 var tasks = [];
 var nextId = 1;
-
-// 시연용 샘플 데이터 
-if (tasks.length === 0) {
-  tasks = [
-    {
-      id: nextId++,
-      title: "학생 상담 일정 조율",
-      deadline: "2025-10-17T15:00",
-      estimatedTime: 30,
-      difficulty: "쉬움",
-      taskType: "전화",
-      importance: "중간",
-      completed: false,
-      createdAt: new Date()
-    },
-    {
-      id: nextId++,
-      title: "장학금 신청서 검토",
-      deadline: "2025-10-18T17:00",
-      estimatedTime: 45,
-      difficulty: "보통",
-      taskType: "문서작업",
-      importance: "높음",
-      completed: false,
-      createdAt: new Date()
-    }
-  ];
-}
 
 
 
@@ -127,7 +100,7 @@ router.delete('/tasks/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// 여러 협조문 파일 분석
+// 여러 협조문 파일 분석 (이미지, PDF, 텍스트 지원)
 router.post('/analyze-documents', upload.array('documents', 10), async (req, res) => {
   // ✅ (1) 로그인 세션 확인
     const user = req.session.user;
@@ -144,19 +117,92 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
   try {
     var documentFiles = req.files;
     var mergePages = req.body.mergePages === 'true';
-    
-    if (!documentFiles || documentFiles.length === 0) {
-      return res.json({ 
-        success: false, 
-        error: '파일이 업로드되지 않았습니다' 
+    var textInput = req.body.textInput; // 텍스트 직접 입력
+
+    // 파일도 없고 텍스트도 없으면 에러
+    if ((!documentFiles || documentFiles.length === 0) && !textInput) {
+      return res.json({
+        success: false,
+        error: '파일을 업로드하거나 텍스트를 입력해주세요'
       });
     }
 
-    console.log('업로드된 파일:', documentFiles.length, '개');
-    console.log('여러 페이지 합치기:', mergePages);
-    console.log('원본 파일명들:', documentFiles.map(f => Buffer.from(f.originalname, 'latin1').toString('utf8')));
-
     var analyses = [];
+
+    // ===== 텍스트 직접 입력 처리 =====
+    if (textInput && textInput.trim()) {
+      console.log('📝 텍스트 직접 입력 분석 시작');
+      try {
+        var textAnalysisPrompt = `이 업무 요청 내용을 분석하여 다음 정보를 추출해주세요:
+
+업무 내용:
+${textInput}
+
+1. 업무 제목 (제목 또는 주요 내용을 간단명료하게)
+2. 마감일 (YYYY-MM-DD 형식) - "제출 기한", "회신 기한" 등의 키워드 찾기
+3. 마감 시간 (HH:MM 형식, 없으면 "17:00"로 설정)
+4. 중요도 (낮음/중간/높음)
+5. 난이도 (쉬움/보통/어려움)
+6. 예상 소요시간 (분 단위, 숫자만)
+7. 업무 유형 (기획/개발/버그수정/회의)
+8. 판단 근거`;
+
+        var textResponse = await openaiClient.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "당신은 웹개발자의 업무 요청을 분석하는 전문가입니다. 텍스트에서 마감일과 중요 정보를 정확하게 추출합니다."
+            },
+            {
+              role: "user",
+              content: textAnalysisPrompt
+            }
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "document_analysis",
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string", description: "업무 제목" },
+                  deadlineDate: { type: "string", description: "마감 날짜 YYYY-MM-DD" },
+                  deadlineTime: { type: "string", description: "마감 시간 HH:MM" },
+                  importance: { type: "string", enum: ["낮음", "중간", "높음"] },
+                  difficulty: { type: "string", enum: ["쉬움", "보통", "어려움"] },
+                  estimatedTime: { type: "number", description: "예상 소요시간(분)" },
+                  taskType: { type: "string", enum: ["기획", "개발", "버그수정", "회의"] },
+                  reason: { type: "string", description: "판단 근거" }
+                },
+                required: ["title", "deadlineDate", "deadlineTime", "importance", "difficulty", "estimatedTime", "taskType", "reason"],
+                additionalProperties: false
+              }
+            }
+          }
+        });
+
+        var textAnalysis = JSON.parse(textResponse.choices[0].message.content);
+        console.log('✅ 텍스트 분석 완료:', textAnalysis);
+
+        analyses.push({
+          fileName: '텍스트 입력',
+          ...textAnalysis
+        });
+      } catch (textError) {
+        console.error('❌ 텍스트 분석 실패:', textError);
+        analyses.push({
+          fileName: '텍스트 입력',
+          error: '분석 실패: ' + textError.message
+        });
+      }
+    }
+
+    // ===== 파일 업로드 처리 =====
+    if (documentFiles && documentFiles.length > 0) {
+      console.log('📁 업로드된 파일:', documentFiles.length, '개');
+      console.log('여러 페이지 합치기:', mergePages);
+      console.log('원본 파일명들:', documentFiles.map(f => Buffer.from(f.originalname, 'latin1').toString('utf8')));
 
     // 여러 페이지를 하나로 합치는 경우
     if (mergePages && documentFiles.length > 1) {
@@ -204,8 +250,8 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
           messages: [
             {
               role: "system",
-              content: `당신은 대학교 학과조교의 협조문을 분석하는 전문가입니다. 
-여러 페이지로 구성된 협조문을 분석할 때는 모든 페이지를 종합적으로 검토하여 정확한 마감일을 찾아야 합니다.
+              content: `당신은 웹개발자의 업무 요청서를 분석하는 전문가입니다.
+여러 페이지로 구성된 문서를 분석할 때는 모든 페이지를 종합적으로 검토하여 정확한 마감일을 찾아야 합니다.
 
 마감일 찾기 규칙:
 1. "제출 기한", "회신 기한", "까지 준수", "까지 회신" 키워드 옆 날짜가 최우선
@@ -230,7 +276,7 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
                   importance: { type: "string", enum: ["낮음", "중간", "높음"] },
                   difficulty: { type: "string", enum: ["쉬움", "보통", "어려움"] },
                   estimatedTime: { type: "number", description: "예상 소요시간(분)" },
-                  taskType: { type: "string", enum: ["전화", "이메일", "문서작업", "대면업무"] },
+                  taskType: { type: "string", enum: ["기획", "개발", "버그수정", "회의"] },
                   reason: { type: "string", description: "판단 근거" }
                 },
                 required: ["title", "deadlineDate", "deadlineTime", "importance", "difficulty", "estimatedTime", "taskType", "reason"],
@@ -274,85 +320,74 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
           var originalFileName = Buffer.from(documentFile.originalname, 'latin1').toString('utf8');
           console.log('처리 중인 파일:', originalFileName);
 
-          // 이미지 파일 처리
-          console.log('이미지 파일 처리 중:', originalFileName);
+          var contentForAI = null;
+          var isPDF = documentFile.mimetype === 'application/pdf';
+
+          // PDF 파일 처리
+          if (isPDF) {
+            console.log('📄 PDF 파일 처리 중:', originalFileName);
+            var dataBuffer = fs.readFileSync(documentFile.path);
+            var pdfData = await pdfParse(dataBuffer);
+            contentForAI = pdfData.text; // PDF에서 추출한 텍스트
+            console.log('PDF 텍스트 추출 완료:', contentForAI.substring(0, 200) + '...');
+          } else {
+            // 이미지 파일 처리
+            console.log('🖼️ 이미지 파일 처리 중:', originalFileName);
+            contentForAI = fs.readFileSync(documentFile.path, { encoding: 'base64' });
+          }
           
-          var base64Image = fs.readFileSync(documentFile.path, { encoding: 'base64' });
-          
-          var analysisPrompt = `이 협조문 이미지를 정확하게 읽고 분석하여 다음 정보를 추출해주세요:
+          // PDF와 이미지에 따라 다른 프롬프트 구성
+          var analysisPrompt = isPDF
+            ? `이 업무 요청서 내용을 분석하여 다음 정보를 추출해주세요:
+
+업무 내용:
+${contentForAI}
 
 1. 업무 제목 (제목 또는 주요 내용을 간단명료하게)
-
-2. ⭐⭐⭐ 마감일 (YYYY-MM-DD 형식) - 매우 중요! ⭐⭐⭐
-   여러 날짜가 있을 경우, 다음 우선순위로 찾으세요:
-   1순위: "제출 기한", "제출 마감", "회신 기한", "까지 준수" 옆의 날짜
-   2순위: 일정 표에서 "조사 제출", "제출 기간"의 마지막 날짜
-   3순위: 가장 늦은 날짜
-   
-   ❌ 주의: "계획 수립", "안내", "공문", "점검일" 날짜는 마감일이 아닙니다!
-   
-   예시:
-   - "제출기한: 2025.10.21.(화)까지" → 2025-10-21 ✅
-   - "조사 기간: 2025.10.15 ~ 21" → 2025-10-21 ✅
-   - "점검일: 2025.10.15" → 이것은 마감일 아님 ❌
-
+2. 마감일 (YYYY-MM-DD 형식)
 3. 마감 시간 (HH:MM 형식, 없으면 "17:00"로 설정)
-
-4. 중요도 (낮음/중간/높음 중 선택)
-   - 발신처가 학과장, 교수, 본부: 높음
-   - "긴급", "필수" 키워드: 높음
-   - "참고", "협조" 키워드: 중간
-   - 기타: 낮음
-
-5. 난이도 (쉬움/보통/어려움 중 선택)
-   - 단순 참석, 확인: 쉬움
-   - 문서 작성, 조사: 보통
-   - 기획, 복잡한 업무: 어려움
-
+4. 중요도 (낮음/중간/높음)
+5. 난이도 (쉬움/보통/어려움)
 6. 예상 소요시간 (분 단위, 숫자만)
+7. 업무 유형 (기획/개발/버그수정/회의)
+8. 판단 근거`
+            : `이 업무 요청서 이미지를 정확하게 읽고 분석하여 다음 정보를 추출해주세요:
 
-7. 업무 유형 (전화/이메일/문서작업/대면업무 중 선택)
+1. 업무 제목 (제목 또는 주요 내용을 간단명료하게)
+2. 마감일 (YYYY-MM-DD 형식) - "제출 기한", "회신 기한" 등의 키워드 찾기
+3. 마감 시간 (HH:MM 형식, 없으면 "17:00"로 설정)
+4. 중요도 (낮음/중간/높음)
+5. 난이도 (쉬움/보통/어려움)
+6. 예상 소요시간 (분 단위, 숫자만)
+7. 업무 유형 (기획/개발/버그수정/회의)
+8. 판단 근거`;
 
-8. 판단 근거 (왜 이렇게 분석했는지 간단히)
+          // PDF일 때는 텍스트만, 이미지일 때는 이미지 + 텍스트
+          var messageContent = isPDF
+            ? analysisPrompt
+            : [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${contentForAI}`
+                  }
+                },
+                {
+                  type: "text",
+                  text: analysisPrompt
+                }
+              ];
 
-중요: 이미지에 있는 텍스트를 정확하게 읽어주세요!`;
-
-          var imageResponse = await openaiClient.chat.completions.create({
+          var fileResponse = await openaiClient.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
               {
                 role: "system",
-                content: `당신은 대학교 학과조교의 협조문을 분석하는 전문가입니다. 
-특히 마감일을 찾는 것이 가장 중요한 임무입니다.
-
-마감일 찾기 규칙:
-1. "제출 기한", "제출 마감", "회신 기한", "까지 준수", "까지 회신" 키워드 옆 날짜가 최우선
-2. 일정표에서 "제출", "회신", "완료"가 포함된 가장 마지막 날짜
-3. "점검일", "실시일", "안내일", "공문일", "계획 수립일"은 마감일이 아님
-4. 여러 날짜 중 가장 늦은 날짜를 선택
-5. 절대 중간 날짜를 마감일로 선택하지 마세요
-
-예시:
-✅ "제출기한: 2025.10.21.(화)까지" → 2025-10-21
-✅ "회신 기한: 2025.10.21.(화)까지" → 2025-10-21  
-✅ 일정표 마지막 항목: "제출 완료: 10.21" → 2025-10-21
-❌ "점검일: 2025.10.15" → 이것은 마감일 아님!
-❌ "안내일: 2025.10.14" → 이것은 마감일 아님!`
+                content: "당신은 웹개발자의 업무 요청을 분석하는 전문가입니다. 텍스트나 이미지에서 마감일과 중요 정보를 정확하게 추출합니다."
               },
               {
                 role: "user",
-                content: [
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:image/jpeg;base64,${base64Image}`
-                    }
-                  },
-                  {
-                    type: "text",
-                    text: analysisPrompt
-                  }
-                ]
+                content: messageContent
               }
             ],
             response_format: {
@@ -368,7 +403,7 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
                     importance: { type: "string", enum: ["낮음", "중간", "높음"] },
                     difficulty: { type: "string", enum: ["쉬움", "보통", "어려움"] },
                     estimatedTime: { type: "number", description: "예상 소요시간(분)" },
-                    taskType: { type: "string", enum: ["전화", "이메일", "문서작업", "대면업무"] },
+                    taskType: { type: "string", enum: ["기획", "개발", "버그수정", "회의"] },
                     reason: { type: "string", description: "판단 근거" }
                   },
                   required: ["title", "deadlineDate", "deadlineTime", "importance", "difficulty", "estimatedTime", "taskType", "reason"],
@@ -378,7 +413,7 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
             }
           });
 
-          var analysis = JSON.parse(imageResponse.choices[0].message.content);
+          var analysis = JSON.parse(fileResponse.choices[0].message.content);
 
           console.log('AI 분석 결과:', analysis);
 
@@ -406,6 +441,7 @@ router.post('/analyze-documents', upload.array('documents', 10), async (req, res
           });
         }
       }
+    }
     }
 
     res.json({
@@ -498,7 +534,7 @@ ${taskText}
       messages: [
         {
           role: "system",
-          content: "당신은 학과조교의 업무를 돕는 업무 관리 전문가입니다. 업무의 중요도를 최우선으로 고려하여 추천합니다."
+          content: "당신은 웹개발자의 업무를 돕는 업무 관리 전문가입니다. 업무의 중요도를 최우선으로 고려하여 추천합니다."
         },
         {
           role: "user",

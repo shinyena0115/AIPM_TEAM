@@ -1,377 +1,365 @@
 <template>
-  <v-container>
-    <h1>TaskAI - AI 업무 우선순위 시스템</h1>
+  <div class="tasks-page">
+    <div class="header">
+      <h1>개발 업무 관리</h1>
+      <p>AI가 업무 우선순위를 분석하여 추천합니다</p>
+    </div>
 
     <!-- 오늘의 추천 업무 -->
-    <v-card v-if="todayRecommendations.length > 0" class="my-4">
-      <v-card-title>오늘의 추천 업무 TOP 3</v-card-title>
-      <v-card-text>
-        <div v-for="(task, index) in todayRecommendations" :key="task.id" class="mb-3">
-          <strong>{{ index + 1 }}. {{ task.title }}</strong>
-          <div class="text-caption">
-            {{ getDday(task.deadline) }} | {{ task.estimatedTime }}분 | 중요도: {{ task.importance }}
+    <div v-if="todayRecommendations.length > 0" class="card recommendation-card">
+      <h2>⭐ 오늘의 추천 업무 TOP 3</h2>
+      <div class="recommendation-list">
+        <div v-for="(task, index) in todayRecommendations" :key="task.id" class="recommendation-item">
+          <div class="rank-badge">{{ index + 1 }}</div>
+          <div class="recommendation-content">
+            <strong>{{ task.title }}</strong>
+            <p class="meta">{{ getDday(task.deadline) }} · {{ task.estimatedTime }}분 · 중요도: {{ task.importance }}</p>
           </div>
         </div>
-        <p class="text-caption text-grey mt-2">💡 AI가 마감일과 중요도를 고려하여 선정했습니다</p>
-      </v-card-text>
-    </v-card>
+      </div>
+      <p class="tip">💡 AI가 마감일과 중요도를 고려하여 선정했습니다</p>
+    </div>
 
-    <!-- 협조문 업로드 -->
-    <v-card class="my-4">
-      <v-card-title>협조문 AI 분석</v-card-title>
-      <v-card-text>
-        <p class="mb-3">협조문 이미지를 업로드하면 AI가 자동으로 분석합니다 (최대 10개)</p>
-        <p class="text-caption text-grey mb-3">
-          💡 팁: 협조문이 여러 장인 경우, 모든 페이지를 함께 선택하세요. AI가 자동으로 하나의 업무로 합쳐서 분석합니다.
-        </p>
+    <!-- 업무 마감일 캘린더 -->
+    <div v-if="tasks.length > 0" class="card calendar-card">
+      <h2>📅 업무 마감일 캘린더</h2>
+      <p class="description">날짜를 클릭하면 해당일의 업무를 확인할 수 있습니다</p>
+      <div class="legend">
+        <span class="legend-item"><span class="dot urgent"></span> 24시간 이내</span>
+        <span class="legend-item"><span class="dot soon"></span> 72시간 이내</span>
+        <span class="legend-item"><span class="dot later"></span> 여유있음</span>
+      </div>
+      <CalendarComponent :tasks="incompleteTasks" @date-selected="handleDateSelected" />
+    </div>
 
-        <!-- 파일 선택 버튼 (숨김) -->
+    <!-- 선택된 날짜의 업무 목록 팝업 -->
+    <div v-if="selectedDateTasks.length > 0" class="card">
+      <h2>📋 {{ selectedDateStr }} 업무 목록 ({{ selectedDateTasks.length }}개)</h2>
+      <div class="selected-tasks-list">
+        <div v-for="task in selectedDateTasks" :key="task.id" class="task-item">
+          <h4>{{ task.title }}</h4>
+          <p class="task-meta">마감: {{ formatDate(task.deadline) }} | 소요시간: {{ task.estimatedTime }}분</p>
+          <p class="task-meta">난이도: {{ task.difficulty }} | 유형: {{ task.taskType }} | 중요도: {{ task.importance }}</p>
+        </div>
+      </div>
+      <button @click="selectedDateTasks = []" class="btn-outline">닫기</button>
+    </div>
+
+    <!-- 업무 요청서 AI 분석 -->
+    <div class="card">
+      <h2>📄 업무 요청서 AI 분석</h2>
+      <p class="description">이미지, PDF 파일을 업로드하거나 텍스트를 직접 입력하세요</p>
+      <p class="tip">💡 팁: 이메일 내용이나 회의록을 복사해서 붙여넣기 할 수 있습니다</p>
+
+      <!-- 탭 선택 -->
+      <div class="input-tabs">
+        <button
+          @click="inputMode = 'file'"
+          :class="['tab-btn', { active: inputMode === 'file' }]"
+        >
+          📁 파일 업로드
+        </button>
+        <button
+          @click="inputMode = 'text'"
+          :class="['tab-btn', { active: inputMode === 'text' }]"
+        >
+          📝 텍스트 입력
+        </button>
+      </div>
+
+      <!-- 파일 업로드 모드 -->
+      <div v-if="inputMode === 'file'">
         <input
           type="file"
           ref="fileInput"
           @change="handleFileSelect"
-          accept="image/*"
+          accept="image/*,application/pdf"
           multiple
           style="display: none"
         />
 
-        <!-- 선택된 파일 목록 -->
-        <div v-if="selectedFiles.length > 0" class="mb-3">
-          <h4>선택된 파일 ({{ selectedFiles.length }}개)</h4>
-          <v-chip
-            v-for="(file, index) in selectedFiles"
-            :key="index"
-            class="ma-1"
-            closable
-            @click:close="removeFile(index)"
-          >
+      <div v-if="selectedFiles.length > 0" class="file-list">
+        <h4>선택된 파일 ({{ selectedFiles.length }}개)</h4>
+        <div class="file-chips">
+          <span v-for="(file, index) in selectedFiles" :key="index" class="file-chip">
             {{ file.name }}
-          </v-chip>
+            <button @click="removeFile(index)" class="remove-btn">×</button>
+          </span>
+        </div>
+      </div>
+
+        <button @click="$refs.fileInput.click()" class="btn-outline">파일 추가 선택</button>
+
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" v-model="mergeMultiplePages" />
+            여러 이미지를 하나의 문서로 분석 (2장 이상일 때)
+          </label>
         </div>
 
-        <!-- 파일 추가 버튼 -->
-        <v-btn
-          @click="$refs.fileInput.click()"
-          variant="outlined"
-          block
-          class="mb-3"
-        >
-          파일 추가 선택
-        </v-btn>
-
-        <v-checkbox
-          v-model="mergeMultiplePages"
-          label="여러 이미지를 하나의 협조문으로 분석 (2장 이상일 때)"
-          density="compact"
-          hide-details
-          class="mb-3"
-        ></v-checkbox>
-
-        <v-btn
+        <button
           @click="analyzeDocuments"
-          color="primary"
-          block
-          :disabled="selectedFiles.length === 0"
-          :loading="isAnalyzing"
+          class="submit-btn"
+          :disabled="selectedFiles.length === 0 || isAnalyzing"
         >
-          AI 분석 시작 ({{ selectedFiles.length }}개)
-        </v-btn>
-      </v-card-text>
-    </v-card>
+          {{ isAnalyzing ? '분석 중...' : `AI 분석 시작 (${selectedFiles.length}개)` }}
+        </button>
+      </div>
+
+      <!-- 텍스트 입력 모드 -->
+      <div v-if="inputMode === 'text'" class="text-input-section">
+        <div class="form-group">
+          <label>업무 요청 내용</label>
+          <textarea
+            v-model="textInput"
+            placeholder="예시:
+[프로젝트] 사용자 로그인 기능 개발
+마감일: 2025년 1월 20일
+담당: 김개발
+내용: OAuth 소셜 로그인 구현, JWT 토큰 인증, 세션 관리
+우선순위: 높음
+
+이메일 내용이나 회의록을 여기에 붙여넣으세요."
+            rows="10"
+          ></textarea>
+          <p class="char-count">{{ textInput.length }}자</p>
+        </div>
+
+        <button
+          @click="analyzeText"
+          class="submit-btn"
+          :disabled="!textInput.trim() || isAnalyzing"
+        >
+          {{ isAnalyzing ? '분석 중...' : 'AI 텍스트 분석 시작' }}
+        </button>
+      </div>
+    </div>
 
     <!-- AI 분석 결과 -->
-    <v-card v-if="analyzedTasks.length > 0" class="my-4">
-      <v-card-title>AI 분석 결과 ({{ analyzedTasks.length }}개) - 확인 후 저장</v-card-title>
-      <v-card-text>
-        <div v-for="(task, index) in analyzedTasks" :key="index" class="mb-4 pa-3 task-box">
-          <h3 class="mb-3">{{ index + 1 }}. {{ task.fileName }}</h3>
+    <div v-if="analyzedTasks.length > 0" class="card">
+      <h2>✅ AI 분석 결과 ({{ analyzedTasks.length }}개) - 확인 후 저장</h2>
 
-          <v-text-field
-            v-model="task.title"
-            label="업무 제목"
-            variant="outlined"
-            density="compact"
-          ></v-text-field>
+      <div v-for="(task, index) in analyzedTasks" :key="index" class="analysis-result">
+        <h3>{{ index + 1 }}. {{ task.fileName }}</h3>
 
-          <v-row>
-            <v-col cols="6">
-              <v-text-field
-                v-model="task.deadlineDate"
-                label="마감 날짜"
-                type="date"
-                variant="outlined"
-                density="compact"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="6">
-              <v-text-field
-                v-model="task.deadlineTime"
-                label="마감 시간"
-                type="time"
-                variant="outlined"
-                density="compact"
-              ></v-text-field>
-            </v-col>
-          </v-row>
-
-          <v-row>
-            <v-col cols="4">
-              <v-text-field
-                v-model.number="task.estimatedTime"
-                label="소요시간 (분)"
-                type="number"
-                variant="outlined"
-                density="compact"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="4">
-              <v-select
-                v-model="task.difficulty"
-                label="난이도"
-                :items="['쉬움', '보통', '어려움']"
-                variant="outlined"
-                density="compact"
-              ></v-select>
-            </v-col>
-            <v-col cols="4">
-              <v-select
-                v-model="task.importance"
-                label="중요도"
-                :items="['낮음', '중간', '높음']"
-                variant="outlined"
-                density="compact"
-              ></v-select>
-            </v-col>
-          </v-row>
-
-          <v-select
-            v-model="task.taskType"
-            label="업무 유형"
-            :items="['전화', '이메일', '문서작업', '대면업무']"
-            variant="outlined"
-            density="compact"
-          ></v-select>
-
-          <v-alert type="info" density="compact">
-            AI 판단: {{ task.reason }}
-          </v-alert>
+        <div class="form-group">
+          <label>업무 제목</label>
+          <input v-model="task.title" type="text" />
         </div>
 
-        <v-btn @click="saveAllAnalyzedTasks" color="success" block class="mt-3">
-          모든 업무 저장 ({{ analyzedTasks.length }}개)
-        </v-btn>
-        <v-btn @click="analyzedTasks = []" color="error" block class="mt-2">
-          취소
-        </v-btn>
-      </v-card-text>
-    </v-card>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>마감 날짜</label>
+            <input v-model="task.deadlineDate" type="date" />
+          </div>
+          <div class="form-group">
+            <label>마감 시간</label>
+            <input v-model="task.deadlineTime" type="time" />
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>소요시간 (분)</label>
+            <input v-model.number="task.estimatedTime" type="number" />
+          </div>
+          <div class="form-group">
+            <label>난이도</label>
+            <select v-model="task.difficulty">
+              <option>쉬움</option>
+              <option>보통</option>
+              <option>어려움</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>중요도</label>
+            <select v-model="task.importance">
+              <option>낮음</option>
+              <option>중간</option>
+              <option>높음</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>업무 유형</label>
+          <select v-model="task.taskType">
+            <option>기획</option>
+            <option>개발</option>
+            <option>버그수정</option>
+            <option>회의</option>
+          </select>
+        </div>
+
+        <div class="ai-reason">
+          <strong>AI 판단:</strong> {{ task.reason }}
+        </div>
+      </div>
+
+      <button @click="saveAllAnalyzedTasks" class="submit-btn">모든 업무 저장 ({{ analyzedTasks.length }}개)</button>
+      <button @click="analyzedTasks = []" class="btn-outline cancel-btn">취소</button>
+    </div>
 
     <!-- 수동 업무 추가 -->
-    <v-card class="my-4">
-      <v-card-title>수동 업무 추가</v-card-title>
-      <v-card-text>
-        <v-text-field
-          v-model="newTask.title"
-          label="업무 제목"
-          variant="outlined"
-        ></v-text-field>
+    <div class="card">
+      <h2>➕ 수동 업무 추가</h2>
 
-        <v-row>
-          <v-col cols="6">
-            <v-text-field
-              v-model="newTask.deadlineDate"
-              label="마감 날짜"
-              type="date"
-              variant="outlined"
-            ></v-text-field>
-          </v-col>
-          <v-col cols="6">
-            <v-text-field
-              v-model="newTask.deadlineTime"
-              label="마감 시간"
-              type="time"
-              variant="outlined"
-            ></v-text-field>
-          </v-col>
-        </v-row>
+      <div class="form-group">
+        <label>업무 제목</label>
+        <input v-model="newTask.title" type="text" placeholder="업무 제목을 입력하세요" />
+      </div>
 
-        <v-text-field
-          v-model.number="newTask.estimatedTime"
-          label="예상 소요시간 (분)"
-          type="number"
-          variant="outlined"
-        ></v-text-field>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>마감 날짜</label>
+          <input v-model="newTask.deadlineDate" type="date" />
+        </div>
+        <div class="form-group">
+          <label>마감 시간</label>
+          <input v-model="newTask.deadlineTime" type="time" />
+        </div>
+      </div>
 
-        <v-select
-          v-model="newTask.difficulty"
-          label="난이도"
-          :items="['쉬움', '보통', '어려움']"
-          variant="outlined"
-        ></v-select>
+      <div class="form-group">
+        <label>예상 소요시간 (분)</label>
+        <input v-model.number="newTask.estimatedTime" type="number" placeholder="예: 120" />
+      </div>
 
-        <v-select
-          v-model="newTask.taskType"
-          label="업무 유형"
-          :items="['전화', '이메일', '문서작업', '대면업무']"
-          variant="outlined"
-        ></v-select>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>난이도</label>
+          <select v-model="newTask.difficulty">
+            <option value="">선택하세요</option>
+            <option>쉬움</option>
+            <option>보통</option>
+            <option>어려움</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>업무 유형</label>
+          <select v-model="newTask.taskType">
+            <option value="">선택하세요</option>
+            <option>기획</option>
+            <option>개발</option>
+            <option>버그수정</option>
+            <option>회의</option>
+          </select>
+        </div>
+      </div>
 
-        <v-select
-          v-model="newTask.importance"
-          label="중요도"
-          :items="['낮음', '중간', '높음']"
-          variant="outlined"
-        ></v-select>
+      <div class="form-group">
+        <label>중요도</label>
+        <select v-model="newTask.importance">
+          <option value="">선택하세요</option>
+          <option>낮음</option>
+          <option>중간</option>
+          <option>높음</option>
+        </select>
+      </div>
 
-        <v-btn @click="addTask" color="primary" block>업무 추가</v-btn>
-      </v-card-text>
-    </v-card>
+      <button @click="addTask" class="submit-btn">업무 추가</button>
+    </div>
 
     <!-- AI 우선순위 추천 -->
-    <v-card class="my-4" v-if="incompleteTasks.length > 0">
-      <v-card-title>AI 우선순위 추천</v-card-title>
-      <v-card-text>
-        <v-btn
-          @click="getAIPriority"
-          color="primary"
-          block
-          :loading="isRecommending"
-        >
-          {{ incompleteTasks.length }}개 업무 추천받기
-        </v-btn>
+    <div v-if="incompleteTasks.length > 0" class="card">
+      <h2>🤖 AI 우선순위 추천</h2>
+      <button @click="getAIPriority" class="submit-btn" :disabled="isRecommending">
+        {{ isRecommending ? '분석 중...' : `${incompleteTasks.length}개 업무 추천받기` }}
+      </button>
 
-        <v-card v-if="aiResult" class="mt-4" variant="outlined">
-          <v-card-text>
-            <pre class="ai-result">{{ aiResult }}</pre>
-          </v-card-text>
-        </v-card>
-      </v-card-text>
-    </v-card>
+      <div v-if="aiResult" class="ai-result-box">
+        <pre>{{ aiResult }}</pre>
+      </div>
+    </div>
 
     <!-- 타임라인 -->
-    <v-card v-if="incompleteTasks.length > 0" class="my-4">
-      <v-card-title>타임라인 (마감일 기준)</v-card-title>
-      <v-card-text>
-        <!-- 급함 -->
-        <div v-if="urgentTasks.length > 0" class="mb-4">
-          <h3 class="urgent-header">급함 (24시간 이내)</h3>
-          <v-card
-            v-for="task in urgentTasks"
-            :key="task.id"
-            class="mb-2 urgent-border"
-            variant="outlined"
-          >
-            <v-card-text>
-              <div class="d-flex justify-space-between align-center">
-                <div>
-                  <strong>{{ task.title }}</strong>
-                  <p class="text-caption">{{ getDday(task.deadline) }} | {{ task.estimatedTime }}분 | {{ task.difficulty }} | 중요도: {{ task.importance }}</p>
-                </div>
-                <v-chip color="red" size="small">{{ formatTime(task.deadline) }}</v-chip>
-              </div>
-            </v-card-text>
-          </v-card>
-        </div>
+    <div v-if="incompleteTasks.length > 0" class="card">
+      <h2>⏰ 타임라인 (마감일 기준)</h2>
 
-        <!-- 보통 -->
-        <div v-if="soonTasks.length > 0" class="mb-4">
-          <h3 class="soon-header">보통 (1-3일 이내)</h3>
-          <v-card
-            v-for="task in soonTasks"
-            :key="task.id"
-            class="mb-2 soon-border"
-            variant="outlined"
-          >
-            <v-card-text>
-              <div class="d-flex justify-space-between align-center">
-                <div>
-                  <strong>{{ task.title }}</strong>
-                  <p class="text-caption">{{ getDday(task.deadline) }} | {{ task.estimatedTime }}분 | {{ task.difficulty }}</p>
-                </div>
-                <v-chip color="orange" size="small">{{ formatTime(task.deadline) }}</v-chip>
-              </div>
-            </v-card-text>
-          </v-card>
+      <!-- 급함 -->
+      <div v-if="urgentTasks.length > 0" class="timeline-section">
+        <h3 class="timeline-header urgent">🔴 급함 (24시간 이내)</h3>
+        <div v-for="task in urgentTasks" :key="task.id" class="timeline-item urgent-item">
+          <strong>{{ task.title }}</strong>
+          <p class="meta">{{ getDday(task.deadline) }} · {{ task.estimatedTime }}분 · {{ task.difficulty }} · 중요도: {{ task.importance }}</p>
+          <span class="time-badge urgent-badge">{{ formatTime(task.deadline) }}</span>
         </div>
+      </div>
 
-        <!-- 여유 -->
-        <div v-if="laterTasks.length > 0">
-          <h3 class="later-header">여유 (3일 이상)</h3>
-          <v-card
-            v-for="task in laterTasks"
-            :key="task.id"
-            class="mb-2 later-border"
-            variant="outlined"
-          >
-            <v-card-text>
-              <div class="d-flex justify-space-between align-center">
-                <div>
-                  <strong>{{ task.title }}</strong>
-                  <p class="text-caption">{{ getDday(task.deadline) }} | {{ task.estimatedTime }}분 | {{ task.difficulty }}</p>
-                </div>
-                <v-chip color="green" size="small">{{ formatTime(task.deadline) }}</v-chip>
-              </div>
-            </v-card-text>
-          </v-card>
+      <!-- 보통 -->
+      <div v-if="soonTasks.length > 0" class="timeline-section">
+        <h3 class="timeline-header soon">🟡 보통 (1-3일 이내)</h3>
+        <div v-for="task in soonTasks" :key="task.id" class="timeline-item soon-item">
+          <strong>{{ task.title }}</strong>
+          <p class="meta">{{ getDday(task.deadline) }} · {{ task.estimatedTime }}분 · {{ task.difficulty }}</p>
+          <span class="time-badge soon-badge">{{ formatTime(task.deadline) }}</span>
         </div>
-      </v-card-text>
-    </v-card>
+      </div>
+
+      <!-- 여유 -->
+      <div v-if="laterTasks.length > 0" class="timeline-section">
+        <h3 class="timeline-header later">🟢 여유 (3일 이상)</h3>
+        <div v-for="task in laterTasks" :key="task.id" class="timeline-item later-item">
+          <strong>{{ task.title }}</strong>
+          <p class="meta">{{ getDday(task.deadline) }} · {{ task.estimatedTime }}분 · {{ task.difficulty }}</p>
+          <span class="time-badge later-badge">{{ formatTime(task.deadline) }}</span>
+        </div>
+      </div>
+    </div>
 
     <!-- 업무 목록 -->
-    <v-card class="my-4">
-      <v-card-title>업무 목록 ({{ tasks.length }}개)</v-card-title>
-      <v-card-text>
-        <div v-if="tasks.length === 0">
-          등록된 업무가 없습니다
-        </div>
+    <div class="card">
+      <h2>📋 업무 목록 ({{ tasks.length }}개)</h2>
 
-        <!-- 진행 중 -->
-        <div v-if="incompleteTasks.length > 0">
-          <h3>진행 중 ({{ incompleteTasks.length }}개)</h3>
-          <v-card
-            v-for="task in incompleteTasks"
-            :key="task.id"
-            class="my-2"
-            variant="outlined"
-          >
-            <v-card-text>
-              <h4>{{ task.title }}</h4>
-              <p>마감: {{ formatDate(task.deadline) }}</p>
-              <p>소요시간: {{ task.estimatedTime }}분 | 난이도: {{ task.difficulty }} | 유형: {{ task.taskType }}</p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn @click="completeTask(task.id)" color="success">완료</v-btn>
-              <v-btn @click="deleteTask(task.id)" color="error">삭제</v-btn>
-            </v-card-actions>
-          </v-card>
-        </div>
+      <div v-if="tasks.length === 0" class="empty-state">
+        등록된 업무가 없습니다
+      </div>
 
-        <!-- 완료됨 -->
-        <div v-if="completedTasks.length > 0" class="mt-4">
-          <h3>완료됨 ({{ completedTasks.length }}개)</h3>
-          <v-card
-            v-for="task in completedTasks"
-            :key="task.id"
-            class="my-2"
-            variant="outlined"
-          >
-            <v-card-text>
+      <!-- 진행 중 -->
+      <div v-if="incompleteTasks.length > 0">
+        <h3 class="section-title">🔄 진행 중 ({{ incompleteTasks.length }}개)</h3>
+        <div class="task-table">
+          <div v-for="task in incompleteTasks" :key="task.id" class="task-row">
+            <div class="task-info">
               <h4>{{ task.title }}</h4>
-              <p>완료: {{ formatDate(task.completedAt) }}</p>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn @click="deleteTask(task.id)" color="error">삭제</v-btn>
-            </v-card-actions>
-          </v-card>
+              <p class="task-meta">마감: {{ formatDate(task.deadline) }}</p>
+              <p class="task-meta">소요시간: {{ task.estimatedTime }}분 | 난이도: {{ task.difficulty }} | 유형: {{ task.taskType }}</p>
+            </div>
+            <div class="task-actions">
+              <button @click="completeTask(task.id)" class="btn-complete">완료</button>
+              <button @click="deleteTask(task.id)" class="btn-delete">삭제</button>
+            </div>
+          </div>
         </div>
-      </v-card-text>
-    </v-card>
-  </v-container>
+      </div>
+
+      <!-- 완료됨 -->
+      <div v-if="completedTasks.length > 0" class="completed-section">
+        <h3 class="section-title">✅ 완료됨 ({{ completedTasks.length }}개)</h3>
+        <div class="task-table">
+          <div v-for="task in completedTasks" :key="task.id" class="task-row completed">
+            <div class="task-info">
+              <h4>{{ task.title }}</h4>
+              <p class="task-meta">완료: {{ formatDate(task.completedAt) }}</p>
+            </div>
+            <div class="task-actions">
+              <button @click="deleteTask(task.id)" class="btn-delete">삭제</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
+import CalendarComponent from '@/components/CalendarComponent.vue';
+
 export default {
   name: 'TaskView',
+  components: {
+    CalendarComponent
+  },
   data() {
     return {
       currentUser: null,
@@ -389,12 +377,15 @@ export default {
       selectedFiles: [],
       analyzedTasks: [],
       isAnalyzing: false,
+      inputMode: 'file', // 'file' 또는 'text'
+      textInput: '', // 텍스트 직접 입력
       isRecommending: false,
-      mergeMultiplePages: false
+      mergeMultiplePages: false,
+      selectedDateTasks: [],
+      selectedDateStr: ''
     };
   },
   mounted() {
-    // 페이지 로드 시 백엔드에서 업무 목록 불러오기
     this.loadCurrentUser();
     this.loadTasks();
   },
@@ -436,10 +427,15 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        var response = await this.$axios.get('http://localhost:3000/api/info', { params: { user_id: this.currentUser?.id } });
-        this.currentUser = response.data.user;
+        var response = await this.$axios.get('http://localhost:3000/api/info');
+        if (response.data.isLogin) {
+          this.currentUser = response.data.user;
+        } else {
+          this.$router.push('/login');
+        }
       } catch (error) {
         console.error('로그인 정보 불러오기 실패:', error);
+        this.$router.push('/login');
       }
     },
     async loadTasks() {
@@ -476,12 +472,6 @@ export default {
       else score += 5;
 
       return score;
-    },
-    getUrgencyColor(task) {
-      var hoursLeft = this.getHoursLeft(task.deadline);
-      if (hoursLeft <= 24) return 'red';
-      if (hoursLeft <= 72) return 'orange';
-      return 'green';
     },
     async addTask() {
       if (!this.newTask.title || !this.newTask.deadlineDate || !this.newTask.deadlineTime || !this.newTask.estimatedTime || !this.newTask.difficulty || !this.newTask.taskType || !this.newTask.importance) {
@@ -621,7 +611,7 @@ export default {
       }
 
       if (this.mergeMultiplePages && this.selectedFiles.length > 1) {
-        alert('여러 이미지를 하나의 협조문으로 분석합니다.\n분석 시간이 조금 더 걸릴 수 있습니다.');
+        alert('여러 이미지를 하나의 문서로 분석합니다.\n분석 시간이 조금 더 걸릴 수 있습니다.');
       }
 
       var formData = new FormData();
@@ -666,6 +656,42 @@ export default {
         this.isAnalyzing = false;
       }
     },
+    async analyzeText() {
+      if (!this.textInput.trim()) {
+        alert('텍스트를 입력해주세요');
+        return;
+      }
+
+      this.isAnalyzing = true;
+
+      try {
+        var formData = new FormData();
+        formData.append('textInput', this.textInput);
+
+        var response = await this.$axios.post(
+          'http://localhost:3000/api/ai/analyze-documents',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+
+        if (response.data.success) {
+          this.analyzedTasks = response.data.analyses.filter(a => !a.error);
+          this.textInput = ''; // 입력 필드 초기화
+          alert(`텍스트 분석 완료!\n내용을 확인하고 저장해주세요.`);
+        } else {
+          alert('분석 실패: ' + response.data.error);
+        }
+      } catch (error) {
+        console.error('텍스트 분석 에러:', error);
+        alert('텍스트 분석에 실패했습니다');
+      } finally {
+        this.isAnalyzing = false;
+      }
+    },
     async saveAllAnalyzedTasks() {
       if (!this.currentUser) {
         alert('사용자 정보가 없습니다. 로그인 후 시도해주세요.');
@@ -700,45 +726,640 @@ export default {
 
       this.analyzedTasks = [];
       alert(`${savedCount}개 업무가 저장되었습니다!`);
+    },
+    handleDateSelected({ date, tasks }) {
+      this.selectedDateTasks = tasks;
+      this.selectedDateStr = date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // 스크롤을 선택된 날짜의 업무 목록으로 이동
+      this.$nextTick(() => {
+        const element = document.querySelector('.selected-tasks-list');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     }
   }
 };
 </script>
 
 <style scoped>
-.ai-result {
+.tasks-page {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1rem;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.header p {
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.card {
+  background: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 2rem;
+}
+
+.card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.description {
+  color: #6b7280;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.tip {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* 추천 업무 */
+.recommendation-card {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.recommendation-card h2 {
+  color: white;
+}
+
+.recommendation-list {
+  margin: 1.5rem 0;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.rank-badge {
+  width: 36px;
+  height: 36px;
+  background: white;
+  color: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.recommendation-content strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.recommendation-content .meta {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.recommendation-card .tip {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 폼 스타일 */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+textarea {
+  resize: none;
+  height: 100px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+/* 파일 목록 */
+.file-list {
+  margin: 1rem 0;
+}
+
+.file-list h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.file-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.file-chip {
+  background: #e5e7eb;
+  padding: 0.4rem 0.8rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.remove-btn:hover {
+  color: #dc2626;
+}
+
+/* 체크박스 */
+.checkbox-group {
+  margin: 1rem 0;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+}
+
+/* 버튼 */
+.submit-btn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s;
+  width: 100%;
+  font-weight: 500;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.submit-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: white;
+  color: #10b981;
+  border: 2px solid #10b981;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.btn-outline:hover {
+  background: #10b981;
+  color: white;
+}
+
+.cancel-btn {
+  margin-top: 0.5rem;
+  background: white;
+  color: #dc2626;
+  border: 2px solid #dc2626;
+}
+
+.cancel-btn:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* 분석 결과 */
+.analysis-result {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.analysis-result h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.ai-reason {
+  background: #e0f2fe;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  color: #0c4a6e;
+}
+
+.ai-result-box {
+  margin-top: 1rem;
+  background: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.ai-result-box pre {
   white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #374151;
+  margin: 0;
 }
 
-.task-box {
-  border: 1px solid #ddd;
-  border-radius: 4px;
+/* 타임라인 */
+.timeline-section {
+  margin-bottom: 1.5rem;
 }
 
-.urgent-header {
-  color: #c62828;
-  margin-bottom: 12px;
+.timeline-header {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
 }
 
-.soon-header {
-  color: #ef6c00;
-  margin-bottom: 12px;
+.timeline-header.urgent {
+  color: #dc2626;
 }
 
-.later-header {
-  color: #2e7d32;
-  margin-bottom: 12px;
+.timeline-header.soon {
+  color: #f59e0b;
 }
 
-.urgent-border {
-  border-left: 4px solid #f44336;
+.timeline-header.later {
+  color: #10b981;
 }
 
-.soon-border {
-  border-left: 4px solid #ff9800;
+.timeline-item {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-left: 4px solid;
+  position: relative;
 }
 
-.later-border {
-  border-left: 4px solid #4caf50;
+.urgent-item {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+.soon-item {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.later-item {
+  border-left-color: #10b981;
+  background: #f0fdf4;
+}
+
+.timeline-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #1f2937;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.time-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: white;
+}
+
+.urgent-badge {
+  background: #dc2626;
+}
+
+.soon-badge {
+  background: #f59e0b;
+}
+
+.later-badge {
+  background: #10b981;
+}
+
+/* 업무 목록 */
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+}
+
+.task-table {
+  margin-bottom: 2rem;
+}
+
+.task-row {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+}
+
+.task-row.completed {
+  opacity: 0.6;
+}
+
+.task-info h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+/* 탭 스타일 */
+.input-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.tab-btn:hover:not(.active) {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+/* 텍스트 입력 섹션 */
+.text-input-section {
+  margin-top: 1rem;
+}
+
+.text-input-section textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  resize: vertical;
+  min-height: 200px;
+}
+
+.text-input-section textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.char-count {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+}
+
+.task-meta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0.25rem 0;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-complete,
+.btn-delete {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btn-complete {
+  background: #10b981;
+  color: white;
+}
+
+.btn-complete:hover {
+  background: #059669;
+}
+
+.btn-delete {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #b91c1c;
+}
+
+.completed-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* 캘린더 카드 */
+.calendar-card {
+  position: relative;
+}
+
+.calendar-card .description {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+/* 범례 */
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.legend-item .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-item .dot.urgent {
+  background-color: #ef4444;
+}
+
+.legend-item .dot.soon {
+  background-color: #f59e0b;
+}
+
+.legend-item .dot.later {
+  background-color: #10b981;
+}
+
+/* 선택된 날짜의 업무 목록 */
+.selected-tasks-list {
+  margin-top: 1rem;
+}
+
+.selected-tasks-list .task-item {
+  background: #f9fafb;
+  border-left: 4px solid #10b981;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.selected-tasks-list .task-item h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.btn-outline {
+  background: white;
+  color: #10b981;
+  border: 2px solid #10b981;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 1rem;
+}
+
+.btn-outline:hover {
+  background: #10b981;
+  color: white;
 }
 </style>
