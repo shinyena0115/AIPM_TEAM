@@ -262,9 +262,9 @@ function define(connection) {
     // ======================
     // ✅ 동기화 (테이블 초기화)
     // ======================
-    connection.sync({ force: true })
-    .then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
-    .catch(err => console.error("❌ DB 초기화 오류:", err));
+    //connection.sync({ force: true })
+    //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
+    //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
     return { User, Department, Team, Task, Vacation, Attendance, PeerReview };
 }
