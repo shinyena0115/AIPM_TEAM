@@ -20,13 +20,6 @@
       <p class="tip">💡 AI가 마감일과 중요도를 고려하여 선정했습니다</p>
     </div>
 
-    <!-- 내 일정 캘린더 (업무 + 연차) -->
-    <div class="card calendar-card">
-      <h2>📅 내 일정 캘린더</h2>
-      <p class="description">업무 마감일과 연차 일정을 한눈에 확인하세요</p>
-      <CalendarComponent />
-    </div>
-
     <!-- 업무 요청서 AI 분석 -->
     <div class="card">
       <h2>📄 업무 요청서 AI 분석</h2>
@@ -461,30 +454,36 @@ export default {
 
       var deadline = this.newTask.deadlineDate + 'T' + this.newTask.deadlineTime;
 
-      var response = await this.$axios.post('http://localhost:3000/api/tasks', {
-        title: this.newTask.title,
-        deadline: deadline,
-        estimated_time: this.newTask.estimatedTime,
-        difficulty: this.newTask.difficulty,
-        taskType: this.newTask.taskType,
-        importance: this.newTask.importance
-      }, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      try {
+        var response = await this.$axios.post('http://localhost:3000/api/tasks', {
+          title: this.newTask.title,
+          deadline: deadline,
+          estimated_time: this.newTask.estimatedTime,
+          difficulty: this.newTask.difficulty,
+          taskType: this.newTask.taskType,
+          importance: this.newTask.importance
+        }, {
+          withCredentials: true,
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (response.data.success) {
-        this.tasks.push(response.data.task);
-        this.newTask = {
-          title: '',
-          deadlineDate: '',
-          deadlineTime: '',
-          estimatedTime: null,
-          difficulty: '',
-          taskType: '',
-          importance: ''
-        };
-        alert('업무가 추가되었습니다');
+        if (response.data.success) {
+          this.tasks.push(response.data.task);
+          this.newTask = {
+            title: '',
+            deadlineDate: '',
+            deadlineTime: '',
+            estimatedTime: null,
+            difficulty: '',
+            taskType: '',
+            importance: ''
+          };
+          alert('업무가 추가되었습니다');
+        }
+      } catch (error) {
+        console.error('업무 추가 실패:', error);
+        console.error('에러 응답:', error.response?.data);
+        alert('업무 추가 실패: ' + (error.response?.data?.error || error.message));
       }
     },
     async getAIPriority() {

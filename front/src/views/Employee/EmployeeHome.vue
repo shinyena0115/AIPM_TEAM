@@ -68,7 +68,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import CalendarComponent from "@/components/CalendarComponent.vue";
 import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
 import EmployeeHeader from "@/components/EmployeeHeader.vue";
@@ -93,7 +92,7 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await axios.get("http://localhost:3000/api/info", {
+        const response = await this.$axios.get("http://localhost:3000/api/info", {
           withCredentials: true,
         });
         if (response.data.isLogin) {

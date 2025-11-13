@@ -102,7 +102,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import ManagerSidebar from "@/components/ManagerSidebar.vue";
 import aiIcon from "@/assets/ai.png";
 export default {
@@ -126,7 +125,7 @@ export default {
     // ✅ 연차 목록 불러오기
     async loadVacations() {
       try {
-        const res = await axios.get("http://localhost:3000/api/manager/vacations", {
+        const res = await this.$axios.get("http://localhost:3000/api/manager/vacations", {
           withCredentials: true,
         });
         if (res.data.success) {
@@ -141,7 +140,7 @@ export default {
     async loadAIPredictions() {
       try {
         const today = new Date().toISOString().split("T")[0];
-        const res = await axios.post(
+        const res = await this.$axios.post(
           "http://localhost:3000/api/ai/vacations/ai-vacation-priority",
           { targetDate: today },
           { withCredentials: true }
@@ -161,7 +160,7 @@ export default {
     async updateStatus(vacationId, status) {
       if (!confirm(`해당 연차를 ${status}하시겠습니까?`)) return;
       try {
-        const res = await axios.post(
+        const res = await this.$axios.post(
           `http://localhost:3000/api/manager/vacations/${vacationId}/status`,
           { status },
           { withCredentials: true }
@@ -190,7 +189,7 @@ export default {
         return;
       }
       try {
-        const res = await axios.post(
+        const res = await this.$axios.post(
           `http://localhost:3000/api/manager/vacations/${this.selectedVacationId}/status`,
           { status: "반려", rejection_reason: this.rejectionReason },
           { withCredentials: true }

@@ -73,7 +73,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import managerProfileIcon from "@/assets/manager_profile_icon.png";
 import ManagerCalendarComponent from "@/components/ManagerCalendarComponent.vue";
 import ManagerSidebar from "@/components/ManagerSidebar.vue"; // ✅ 추가
@@ -97,7 +96,7 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await axios.get("http://localhost:3000/api/info", {
+        const response = await this.$axios.get("http://localhost:3000/api/info", {
           withCredentials: true,
         });
         if (response.data.isLogin) {

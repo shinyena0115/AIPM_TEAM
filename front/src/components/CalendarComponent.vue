@@ -48,8 +48,6 @@
 </template>
 
 <script>
-import axios from "axios";
-
 export default {
   name: "TeamCalendar",
   props: {
@@ -85,7 +83,7 @@ export default {
   methods: {
     async fetchEvents() {
       try {
-        const res = await axios.get(this.apiEndpoint);
+        const res = await this.$axios.get(this.apiEndpoint);
         this.events = res.data;
       } catch (err) {
         console.error("❌ 이벤트 불러오기 실패:", err);

@@ -91,7 +91,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import EmployeeHeader from "@/components/EmployeeHeader.vue";
 import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
 
@@ -122,7 +121,7 @@ export default {
     },
     async loadTeammates() {
       try {
-        const res = await axios.get("/api/peer-review/team", { withCredentials: true });
+        const res = await this.$axios.get("/api/peer-review/team", { withCredentials: true });
         this.teammates = res.data.data;
       } catch (err) {
         console.error("❌ 팀원 조회 실패:", err);

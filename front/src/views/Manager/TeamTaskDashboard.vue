@@ -100,7 +100,6 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
-import axios from "axios";
 import { Doughnut } from "vue-chartjs";
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from "chart.js";
 
@@ -112,7 +111,7 @@ const expanded = ref([]);
 
 const fetchTeamTasks = async () => {
   try {
-    const res = await axios.get("/api/manager/team-tasks", { withCredentials: true });
+    const res = await this.$axios.get("/api/manager/team-tasks", { withCredentials: true });
     if (Array.isArray(res.data)) tasks.value = res.data;
   } catch (err) {
     console.error("팀 업무 조회 실패:", err);

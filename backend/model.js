@@ -111,7 +111,7 @@ function define(connection) {
                 allowNull: false,
             },
             taskType: {
-                type: DataTypes.ENUM("전화", "이메일", "문서작업", "대면업무"),
+                type: DataTypes.ENUM("기획", "개발", "버그수정", "회의"),
                 allowNull: false,
             },
             importance: {
@@ -262,9 +262,9 @@ function define(connection) {
     // ======================
     // ✅ 동기화 (테이블 초기화)
     // ======================
-    //connection.sync({ force: true })
-    //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
-    //.catch(err => console.error("❌ DB 초기화 오류:", err));
+    connection.sync({ force: true })
+    .then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
+    .catch(err => console.error("❌ DB 초기화 오류:", err));
 
     return { User, Department, Team, Task, Vacation, Attendance, PeerReview };
 }

@@ -38,7 +38,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import userProfileIcon from "@/assets/user_profile_icon.png";
 
 export default {
@@ -55,7 +54,7 @@ export default {
   async mounted() {
     // ✅ 로그인된 사용자 정보 불러오기
     try {
-      const res = await axios.get("http://localhost:3000/api/info", {
+      const res = await this.$axios.get("http://localhost:3000/api/info", {
         withCredentials: true, // 세션 쿠키 포함 필수
       });
 
@@ -83,7 +82,7 @@ export default {
   async checkIn() {
     if (!this.currentUser) return;
     try {
-      const res = await axios.post("http://localhost:3000/api/attendance/checkin", {
+      const res = await this.$axios.post("http://localhost:3000/api/attendance/checkin", {
         user_id: this.currentUser.user_id,
       });
       const now = new Date();
@@ -97,7 +96,7 @@ export default {
   async checkOut() {
     if (!this.currentUser) return;
     try {
-      const res = await axios.post("http://localhost:3000/api/attendance/checkout", {
+      const res = await this.$axios.post("http://localhost:3000/api/attendance/checkout", {
         user_id: this.currentUser.user_id,
       });
       const now = new Date();

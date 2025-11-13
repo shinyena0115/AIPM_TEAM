@@ -108,7 +108,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import EmployeeHeader from "@/components/EmployeeHeader.vue";
 import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
 
@@ -131,7 +130,7 @@ export default {
     },
     async loadVacations() {
       try {
-        const res = await axios.get("http://localhost:3000/api/vacations/me", {
+        const res = await this.$axios.get("http://localhost:3000/api/vacations/me", {
           withCredentials: true,
         });
         if (res.data.success) this.vacations = res.data.vacations;
@@ -143,7 +142,7 @@ export default {
       if (!this.form.startDate || !this.form.endDate || !this.form.reason)
         return alert("모든 항목을 입력해주세요.");
       try {
-        const res = await axios.post("http://localhost:3000/api/vacations", this.form, {
+        const res = await this.$axios.post("http://localhost:3000/api/vacations", this.form, {
           withCredentials: true,
         });
         if (res.data.success) {

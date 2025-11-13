@@ -114,7 +114,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import EmployeeHeader from "@/components/EmployeeHeader.vue";
 import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
 
@@ -144,7 +143,7 @@ export default {
     },
     async loadStatus() {
       try {
-        const res = await axios.get("http://localhost:3000/api/vacations/status", {
+        const res = await this.$axios.get("http://localhost:3000/api/vacations/status", {
           withCredentials: true,
         });
         if (res.data.success) this.status = res.data.status;
@@ -154,7 +153,7 @@ export default {
     },
     async loadHistory() {
       try {
-        const res = await axios.get("http://localhost:3000/api/vacations/history", {
+        const res = await this.$axios.get("http://localhost:3000/api/vacations/history", {
           withCredentials: true,
         });
         if (res.data.success) this.history = res.data.history;
