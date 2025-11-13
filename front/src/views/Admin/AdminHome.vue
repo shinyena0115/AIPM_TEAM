@@ -123,14 +123,17 @@ export default {
     toggleDropdown() {
       this.showDropdown = !this.showDropdown;
     },
-    async logout() {
-      try {
-        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
-        this.$router.push("/login");
-      } catch (err) {
-        console.error("로그아웃 실패:", err);
-      }
-    },
+   async logout() {
+  try {
+    await this.$axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
+    this.currentUser = null; // 세션 데이터 초기화
+    this.showDropdown = false;
+    this.$router.push("/login");
+  } catch (err) {
+    console.error("로그아웃 실패:", err);
+  }
+}
+,
     goTo(path) {
       this.$router.push(path);
     },
