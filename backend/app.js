@@ -91,6 +91,7 @@ var aiVacationRouter = require("./routes/api/apiVacation");
 
 var attendanceRouter = require("./routes/employee/attendance");
 var peerReviewRouter = require("./routes/employee/peerReview");
+var teamTaskDashboard = require("./routes/manager/teamTaskDashboard");
 
 
 // ✅ 절대경로로 calendar.js 확실하게 로드
@@ -127,7 +128,7 @@ app.use("/api/ai/vacations", aiVacationRouter);
 
 app.use("/api/attendance", attendanceRouter);
 app.use("/api/peer-review", peerReviewRouter);
-
+app.use("/api/manager", teamTaskDashboard);
 
 
 

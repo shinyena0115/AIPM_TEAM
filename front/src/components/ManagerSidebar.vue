@@ -11,8 +11,8 @@
           메인으로
         </li>
         <li
-          @click="$router.push('/manager/team-tasks')"
-          :class="{ active: isActive('/manager/team-tasks') }"
+          @click="$router.push('/manager/team-task-dashboard')"
+          :class="{ active: isActive('/manager/team-task-dashboard') }"
         >
           팀 업무 현황
         </li>

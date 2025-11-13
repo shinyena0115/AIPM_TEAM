@@ -235,7 +235,7 @@ Vacation.belongsTo(User, { foreignKey: "user_id", as: "user" }); // 👈 as 추�
   // ✅ 테이블 생성 (force: false → 기존 데이터 유지)
   //connection.sync({ alter: true });
 
-    // ======================
+  // ======================
   // ✅ 동기화 (테이블 초기화)
   // ======================
  //connection.sync({ force: true })

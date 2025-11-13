@@ -12,7 +12,7 @@ import ManagerVacation from '../views/Manager/ManagerVacation.vue'
 import ManagerHome from '../views/Manager/ManagerHome.vue' 
 import VacationStatus from '../views/Employee/VacationStatus.vue'
 import PeerReview from '../views/Employee/PeerReview.vue'
-
+import TeamTaskDashboard from '../views/Manager/TeamTaskDashboard.vue'
 const routes = [
   {
     path: '/',
@@ -118,7 +118,11 @@ const routes = [
   component: PeerReview
   },
   
-
+  { 
+    path: '/manager/team-task-dashboard', 
+    name: 'TeamTaskDashboard', 
+    component: TeamTaskDashboard 
+  },
   
 
   
