@@ -1,47 +1,46 @@
 <template>
   <aside class="sidebar">
-    <div class="logo">AIPM Admin</div>
+    <div class="logo">AIPM Manager</div>
 
     <nav class="menu">
       <ul>
         <li
-          @click="$router.push('/admin/home')"
-          :class="{ active: isActive('/admin/home') }"
+          @click="$router.push('/manager/home')"
+          :class="{ active: isActive('/manager/home') }"
         >
           메인으로
         </li>
-
         <li
-          @click="$router.push('/admin/departments')"
-          :class="{ active: isActive('/admin/departments') }"
+          @click="$router.push('/manager/team-task-dashboard')"
+          :class="{ active: isActive('/manager/team-task-dashboard') }"
         >
-          부서 / 팀 관리
+          팀 업무 현황
         </li>
 
         <li
-          @click="$router.push('/admin/users')"
-          :class="{ active: isActive('/admin/users') }"
+          @click="$router.push('/manager/vacation')"
+          :class="{ active: isActive('/manager/vacation') }"
         >
-          사원 관리
+          연차 승인 관리
         </li>
 
         <li
-          @click="$router.push('/admin/approvals')"
-          :class="{ active: isActive('/admin/approvals') }"
+          @click="$router.push('/manager/reports')"
+          :class="{ active: isActive('/manager/reports') }"
         >
-          결재 관리
+          리포트 요약
         </li>
 
         <li
-          @click="$router.push('/admin/reports')"
-          :class="{ active: isActive('/admin/reports') }"
+          @click="$router.push('/manager/calendar')"
+          :class="{ active: isActive('/manager/calendar') }"
         >
-          리포트
+          팀 캘린더
         </li>
 
         <li
-          @click="$router.push('/admin/settings')"
-          :class="{ active: isActive('/admin/settings') }"
+          @click="$router.push('/manager/settings')"
+          :class="{ active: isActive('/manager/settings') }"
         >
           설정
         </li>
@@ -54,7 +53,7 @@
 
 <script>
 export default {
-  name: "AdminSidebar",
+  name: "ManagerSidebar",
   methods: {
     isActive(path) {
       return this.$route.path === path;
@@ -97,18 +96,17 @@ export default {
   font-weight: 500;
 }
 
-/* 🔴 관리자 전용 색상 적용 */
 .menu li.active {
-  color: #eb3f25;
+  color: #2563eb;
   font-weight: 600;
-  background-color: #fef2f2;
+  background-color: #eff6ff;
   border-radius: 8px;
   padding-left: 12px;
 }
 
 .menu li:hover {
-  color: #eb3f25;
-  background-color: #fef2f2;
+  color: #2563eb;
+  background-color: #f3f4f6;
   border-radius: 8px;
   padding-left: 12px;
 }

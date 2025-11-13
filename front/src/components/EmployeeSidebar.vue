@@ -1,50 +1,35 @@
 <template>
   <aside class="sidebar">
-    <div class="logo">AIPM Admin</div>
-
     <nav class="menu">
       <ul>
         <li
-          @click="$router.push('/admin/home')"
-          :class="{ active: isActive('/admin/home') }"
+          @click="$router.push('/employee/home')"
+          :class="{ active: isActive('/employee/home') }"
         >
           메인으로
         </li>
-
         <li
-          @click="$router.push('/admin/departments')"
-          :class="{ active: isActive('/admin/departments') }"
+          @click="$router.push('/employee/tasks')"
+          :class="{ active: isActive('/employee/tasks') }"
         >
-          부서 / 팀 관리
+          AI 업무 우선순위
         </li>
 
         <li
-          @click="$router.push('/admin/users')"
-          :class="{ active: isActive('/admin/users') }"
+          @click="$router.push('/employee/vacation')"
+          :class="{ active: isActive('/employee/vacation') }"
         >
-          사원 관리
+          연차 관리
         </li>
 
         <li
-          @click="$router.push('/admin/approvals')"
-          :class="{ active: isActive('/admin/approvals') }"
+          @click="$router.push('/employee/peer-review')"
+          :class="{ active: isActive('/employee/peer-review') }"
         >
-          결재 관리
+          동료 평가
         </li>
 
-        <li
-          @click="$router.push('/admin/reports')"
-          :class="{ active: isActive('/admin/reports') }"
-        >
-          리포트
-        </li>
-
-        <li
-          @click="$router.push('/admin/settings')"
-          :class="{ active: isActive('/admin/settings') }"
-        >
-          설정
-        </li>
+        
 
         
       </ul>
@@ -54,7 +39,7 @@
 
 <script>
 export default {
-  name: "AdminSidebar",
+  name: "EmployeeSidebar",
   methods: {
     isActive(path) {
       return this.$route.path === path;
@@ -75,12 +60,6 @@ export default {
   flex-direction: column;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-  color: #111827;
-}
 
 /* ===== 메뉴 스타일 ===== */
 .menu ul {
@@ -97,18 +76,18 @@ export default {
   font-weight: 500;
 }
 
-/* 🔴 관리자 전용 색상 적용 */
+/* 🟢 직원 전용 메인 색상 적용 */
 .menu li.active {
-  color: #eb3f25;
+  color: #19953e;
   font-weight: 600;
-  background-color: #fef2f2;
+  background-color: #ecfdf5;
   border-radius: 8px;
   padding-left: 12px;
 }
 
 .menu li:hover {
-  color: #eb3f25;
-  background-color: #fef2f2;
+  color: #19953e;
+  background-color: #ecfdf5;
   border-radius: 8px;
   padding-left: 12px;
 }

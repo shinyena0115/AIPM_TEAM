@@ -1,19 +1,7 @@
 <template>
   <div class="dashboard-container">
-    <!-- 왼쪽 사이드바 -->
-    <aside class="sidebar">
-      <div class="logo">AIPM Manager</div>
-      <nav class="menu">
-        <ul>
-          <li class="active">Dashboard</li>
-          <li>Team</li>
-          <li>Projects</li>
-          <li>Approvals</li>
-          <li>Reports</li>
-          <li>Settings</li>
-        </ul>
-      </nav>
-    </aside>
+    <!-- ✅ 왼쪽 사이드바 (컴포넌트로 교체) -->
+    <ManagerSidebar />
 
     <!-- 메인 -->
     <main class="main">
@@ -37,12 +25,12 @@
       <!-- 인사말 -->
       <div class="welcome">
         <h1>{{ currentUser?.name }} 매니저님, 안녕하세요!</h1>
-        <p>오늘 팀의 진행 상황을 확인해보세요. </p>
+        <p>오늘 팀의 진행 상황을 확인해보세요.</p>
       </div>
 
       <!-- 기능 카드 -->
       <div class="feature-grid">
-        <div class="feature-card" @click="goTo('/manager/team-tasks')">
+        <div class="feature-card" @click="goTo('/manager/team-task-dashboard')">
           <h3>팀 업무 현황</h3>
           <div class="feature-desc">
             <p>팀원들의 업무 상태와 진행률을</p>
@@ -72,7 +60,7 @@
     <aside class="sidebar-right">
       <div class="calendar">
         <h3>Team Calendar</h3>
-        <CalendarComponent />
+        <ManagerCalendarComponent />
       </div>
 
       <div class="events">
@@ -85,12 +73,17 @@
 </template>
 
 <script>
+import axios from "axios";
 import managerProfileIcon from "@/assets/manager_profile_icon.png";
-import CalendarComponent from "@/components/CalendarComponent.vue";
+import ManagerCalendarComponent from "@/components/ManagerCalendarComponent.vue";
+import ManagerSidebar from "@/components/ManagerSidebar.vue"; // ✅ 추가
 
 export default {
   name: "ManagerHome",
-  components: { CalendarComponent },
+  components: {
+    ManagerCalendarComponent,
+    ManagerSidebar, // ✅ 등록
+  },
   data() {
     return {
       currentUser: null,
@@ -104,7 +97,9 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await this.$axios.get("http://localhost:3000/api/info");
+        const response = await axios.get("http://localhost:3000/api/info", {
+          withCredentials: true,
+        });
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
@@ -120,7 +115,7 @@ export default {
     },
     async logout() {
       try {
-        await this.$axios.post("http://localhost:3000/api/logout");
+        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
         this.$router.push("/login");
       } catch (err) {
         console.error("로그아웃 실패:", err);
@@ -140,38 +135,6 @@ export default {
   background: #f8f9fc;
   color: #1a1a1a;
   font-family: 'Inter', sans-serif;
-}
-
-/* 좌측 사이드바 */
-.sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #e6e6e6;
-  padding: 20px;
-}
-
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-}
-
-.menu ul {
-  list-style: none;
-  padding: 0;
-}
-
-.menu li {
-  padding: 10px 0;
-  color: #666;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.menu li.active,
-.menu li:hover {
-  color:  #2563eb;
-  font-weight: 600;
 }
 
 /* 메인 영역 */
@@ -221,7 +184,7 @@ export default {
   right: 0;
   background: #fff;
   border: 1px solid #e6e6e6;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
   padding: 10px 14px;
   width: 180px;
@@ -268,6 +231,7 @@ export default {
   color: #6b7280;
 }
 
+/* 기능 카드 */
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -333,6 +297,4 @@ export default {
 .event.green {
   background: #22c55e;
 }
-</style> 
-
- 
+</style>

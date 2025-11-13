@@ -1,22 +1,11 @@
 <template>
   <div class="dashboard-container">
-    <!-- 왼쪽 사이드바 -->
-    <aside class="sidebar">
-      <div class="logo">AIPM Admin</div>
-      <nav class="menu">
-        <ul>
-          <li class="active">Dashboard</li>
-          <li>Departments</li>
-          <li>Users</li>
-          <li>Approvals</li>
-          <li>Reports</li>
-          <li>Settings</li>
-        </ul>
-      </nav>
-    </aside>
+    <!-- ✅ 관리자 사이드바 컴포넌트로 대체 -->
+    <AdminSidebar />
 
     <!-- 메인 -->
     <main class="main">
+      <!-- 상단 헤더 -->
       <header class="main-header">
         <input type="text" placeholder="Search for departments, users, reports..." />
 
@@ -74,6 +63,7 @@
         <h3>Organization Calendar</h3>
         <CalendarComponent />
       </div>
+
       <div class="summary">
         <h3>System Overview</h3>
         <ul>
@@ -96,10 +86,14 @@
 <script>
 import adminProfileIcon from "@/assets/admin_profile_icon.png";
 import CalendarComponent from "@/components/CalendarComponent.vue";
+import AdminSidebar from "@/components/AdminSidebar.vue"; // ✅ 추가
 
 export default {
   name: "AdminHome",
-  components: { CalendarComponent },
+  components: {
+    CalendarComponent,
+    AdminSidebar, // ✅ 등록
+  },
   data() {
     return {
       currentUser: null,
@@ -113,7 +107,9 @@ export default {
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await this.$axios.get("http://localhost:3000/api/info");
+        const response = await this.$axios.get("http://localhost:3000/api/info", {
+          withCredentials: true,
+        });
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
@@ -129,7 +125,7 @@ export default {
     },
     async logout() {
       try {
-        await this.$axios.post("http://localhost:3000/api/logout");
+        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
         this.$router.push("/login");
       } catch (err) {
         console.error("로그아웃 실패:", err);
@@ -148,39 +144,7 @@ export default {
   height: 100vh;
   background: #f8f9fc;
   color: #1a1a1a;
-  font-family: 'Inter', sans-serif;
-}
-
-/* 좌측 사이드바 */
-.sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #e6e6e6;
-  padding: 20px;
-}
-
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-}
-
-.menu ul {
-  list-style: none;
-  padding: 0;
-}
-
-.menu li {
-  padding: 10px 0;
-  color: #666;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.menu li.active,
-.menu li:hover {
-  color: #eb3f25;
-  font-weight: 600;
+  font-family: "Inter", sans-serif;
 }
 
 /* 메인 영역 */
@@ -230,7 +194,7 @@ export default {
   right: 0;
   background: #fff;
   border: 1px solid #e6e6e6;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
   padding: 10px 14px;
   width: 180px;
@@ -277,6 +241,7 @@ export default {
   color: #6b7280;
 }
 
+/* 기능 카드 */
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -323,7 +288,9 @@ export default {
   padding: 20px;
 }
 
-.summary h3, .alerts h3, .calendar h3 {
+.summary h3,
+.alerts h3,
+.calendar h3 {
   margin-bottom: 15px;
 }
 
@@ -345,7 +312,15 @@ export default {
   font-size: 0.9rem;
 }
 
-.event.red { background: #ef4444; }
-.event.yellow { background: #f59e0b; }
-.event.blue { background: #3b82f6; }
+.event.red {
+  background: #ef4444;
+}
+
+.event.yellow {
+  background: #f59e0b;
+}
+
+.event.blue {
+  background: #3b82f6;
+}
 </style>

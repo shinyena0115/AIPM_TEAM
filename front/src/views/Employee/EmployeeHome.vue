@@ -1,111 +1,101 @@
 <template>
-  <div class="dashboard-container">
-    <!-- 왼쪽 사이드바 -->
-    <aside class="sidebar">
-      <div class="logo">AIPM</div>
-      <nav class="menu">
-        <ul>
-          <li class="active">Dashboard</li>
-          <li>Projects</li>
-          <li>Calendar</li>
-          <li>Tasks</li>
-          <li>Report</li>
-          <li>Settings</li>
-        </ul>
-      </nav>
-    </aside> 
+  <div class="employee-layout">
+    <!-- ✅ 상단 고정 헤더 -->
+    <EmployeeHeader
+      :currentUser="currentUser"
+      @toggle-sidebar="toggleSidebar"
+    />
 
-    <!-- 메인 -->
-    <main class="main">
-      <header class="main-header">
-        <input type="text" placeholder="Search for Projects, tasks etc." />
-        <!-- 🔹 상단 계정 아이콘 -->
-        <div class="profile">
-          <div class="avatar-wrapper" @click="toggleDropdown">
-            <img :src="userIcon" alt="avatar" class="avatar" />
-            <div v-if="showDropdown" class="dropdown">
-              <p class="name">{{ currentUser?.name }}</p>
-              <p class="email">{{ currentUser?.email }}</p>
-              <hr />
+    <!-- ✅ 헤더 아래: 왼쪽 사이드바 + 메인 + 오른쪽 캘린더 -->
+    <div class="content-area">
+      <!-- 왼쪽 사이드바 (햄버거로 토글 가능) -->
+      <transition name="slide">
+        <EmployeeSidebar
+          v-if="showSidebar"
+          class="sidebar-left"
+          @close-sidebar="toggleSidebar"
+        />
+      </transition>
 
-              <!-- ✅ 출근/퇴근 버튼 -->
-              <div class="attendance">
-                <button @click="checkIn" :disabled="checkInTime">출근</button>
-                <button @click="checkOut" :disabled="!checkInTime || checkOutTime">퇴근</button>
-                <div class="time-info" v-if="checkInTime || checkOutTime">
-                  <p v-if="checkInTime">출근: {{ checkInTime }}</p>
-                  <p v-if="checkOutTime">퇴근: {{ checkOutTime }}</p>
-                </div>
-              </div>
-              <hr />
-              <button class="logout" @click="logout">로그아웃</button>
+      <!-- 오버레이 (모바일 전용) -->
+      <div
+        v-if="showSidebar"
+        class="overlay"
+        @click="toggleSidebar"
+      ></div>
+
+      <!-- 메인 콘텐츠 -->
+      <main class="main">
+        <div class="welcome">
+          <h1>{{ currentUser?.name }}님, 환영합니다!</h1>
+          <p>오늘도 좋은 하루 되세요 😊</p>
+        </div>
+
+        <!-- 기능 카드 -->
+        <div class="feature-grid">
+          <div class="feature-card" @click="goTo('/employee/tasks')">
+            <h3>AI 업무 우선순위</h3>
+            <div class="feature-desc">
+              <p>AI가 실시간으로 업무의 중요도를 분석하여</p>
+              <p>가장 효율적인 순서로 정리합니다.</p>
+            </div>
+          </div>
+
+          <div class="feature-card" @click="goTo('/employee/vacation')">
+            <h3>연차 관리</h3>
+            <div class="feature-desc">
+              <p>내 근무일정과 연차 내역을 한 화면에서</p>
+              <p>직관적으로 확인하고 간편하게 신청하세요.</p>
             </div>
           </div>
         </div>
-      </header>
+      </main>
 
-      <!-- 인사말 -->
-      <div class="welcome">
-        <h1>{{ currentUser?.name }}님, 환영합니다!</h1>
-        <p>오늘도 좋은 하루 되세요 😊</p>
-      </div>
-
-      <!-- 기능 카드 -->
-      <div class="feature-grid">
-        <div class="feature-card" @click="goTo('/employee/tasks')">
-          <h3>AI 업무 우선순위</h3>
-          <div class="feature-desc">
-            <p>AI가 실시간으로 업무의 중요도를 분석하여</p>
-            <p>가장 효율적인 순서로 정리합니다.</p>
-          </div>
+      <!-- ✅ 오른쪽 캘린더 -->
+      <aside class="sidebar-right">
+        <div class="calendar">
+          <h3>📅 Calendar</h3>
+          <CalendarComponent />
         </div>
 
-        <div class="feature-card" @click="goTo('/employee/vacation')">
-          <h3>연차 관리</h3>
-          <div class="feature-desc">
-            <p>내 근무일정과 연차 내역을 한 화면에서</p>
-            <p>직관적으로 확인하고 간편하게 신청하세요.</p>
-          </div>
+        <div class="events">
+          <h3>Upcoming Events</h3>
+          <p>등록된 일정이 없습니다.</p>
         </div>
-      </div>
-    </main> 
-
-    <!-- 오른쪽 사이드바 -->
-    <aside class="sidebar-right">
-      <div class="calendar">
-        <h3>Calendar</h3>
-        <CalendarComponent />
-      </div>
-      <div class="events">
-        <h3>Upcoming Events</h3>
-      </div>
-    </aside>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script>
-import userProfileIcon from "@/assets/user_profile_icon.png";
+import axios from "axios";
 import CalendarComponent from "@/components/CalendarComponent.vue";
+import EmployeeSidebar from "@/components/EmployeeSidebar.vue";
+import EmployeeHeader from "@/components/EmployeeHeader.vue";
 
 export default {
   name: "EmployeeHome",
-  components: { CalendarComponent },
+  components: { EmployeeSidebar, EmployeeHeader, CalendarComponent },
   data() {
     return {
       currentUser: null,
-      showDropdown: false,
-      userIcon: userProfileIcon,
-      checkInTime: null,
-      checkOutTime: null,
+      showSidebar: true, // ✅ 기본 표시 (PC)
     };
   },
   async created() {
     await this.loadCurrentUser();
+
+    // ✅ 화면 크기에 따라 초기 표시 설정
+    if (window.innerWidth <= 1024) {
+      this.showSidebar = false;
+    }
   },
   methods: {
     async loadCurrentUser() {
       try {
-        const response = await this.$axios.get("http://localhost:3000/api/info");
+        const response = await axios.get("http://localhost:3000/api/info", {
+          withCredentials: true,
+        });
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
@@ -116,167 +106,88 @@ export default {
         this.$router.push("/login");
       }
     },
-    toggleDropdown() {
-      this.showDropdown = !this.showDropdown;
-    },
-    async logout() {
-      try {
-        await this.$axios.post("http://localhost:3000/api/logout");
-        this.$router.push("/login");
-      } catch (err) {
-        console.error("로그아웃 실패:", err);
-      }
-    },
     goTo(path) {
       this.$router.push(path);
     },
-    checkIn() {
-      const now = new Date();
-      this.checkInTime = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    },
-    checkOut() {
-      const now = new Date();
-      this.checkOutTime = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    toggleSidebar() {
+      this.showSidebar = !this.showSidebar;
     },
   },
 };
 </script>
 
 <style scoped>
-.dashboard-container {
+/* 전체 레이아웃 */
+.employee-layout {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   background: #f8f9fc;
-  color: #1a1a1a;
-  font-family: 'Inter', sans-serif;
 }
 
-/* 좌측 사이드바 */
-.sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #e6e6e6;
-  padding: 20px;
+/* ✅ 헤더 */
+.employee-layout > :first-child {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
+/* ✅ 헤더 아래: 3분할 레이아웃 */
+.content-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
 
-.menu ul {
-  list-style: none;
-  padding: 0;
+/* ✅ 왼쪽 사이드바 */
+.sidebar-left {
+  width: 240px;
+  background: #ffffff;
+  border: none;
+  flex-shrink: 0;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  z-index: 1100;
 }
 
-.menu li {
-  padding: 10px 0;
-  color: #666;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.menu li.active,
-.menu li:hover {
-  color: #19953e;
-  font-weight: 600;
-}
-
-/* 메인 영역 */
+/* ✅ 가운데 메인 */
 .main {
   flex: 1;
-  padding: 20px 30px;
+  padding: 30px;
+  overflow-y: auto;
+  z-index: 1;
+}
+
+/* ✅ 오른쪽 캘린더 사이드바 */
+.sidebar-right {
+  width: 300px;
+  background: #fff;
+  border-left: 1px solid #e6e6e6;
+  padding: 20px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
   overflow-y: auto;
 }
 
-.main-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-}
-
-.main-header input {
-  width: 50%;
-  padding: 10px 15px;
-  border: 1px solid #e6e6e6;
-  border-radius: 8px;
-}
-
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 아바타 */
-.avatar-wrapper {
-  position: relative;
-  cursor: pointer;
-}
-
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-/* 드롭다운 */
-.dropdown {
-  position: absolute;
-  top: 45px;
-  right: 0;
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  border-radius: 10px;
-  padding: 10px 14px;
-  width: 180px;
-  z-index: 100;
-}
-
-.dropdown .name {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.dropdown .email {
-  font-size: 13px;
-  color: #666;
-}
-
-.dropdown hr {
-  border: none;
-  border-top: 1px solid #eee;
-  margin: 8px 0;
-}
-
-.dropdown .logout {
-  width: 100%;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px;
-  cursor: pointer;
-}
-
-/* 인사말 */
+/* ✅ 인사말 */
 .welcome {
-  margin: 10px 0 20px 0;
+  margin: 20px 0;
 }
-
 .welcome h1 {
   font-size: 22px;
   font-weight: 600;
 }
-
 .welcome p {
   color: #6b7280;
 }
 
+/* ✅ 기능 카드 */
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -285,7 +196,6 @@ export default {
   max-width: 800px;
   margin: 0 auto;
 }
-
 .feature-card {
   background: #fff;
   border-radius: 16px;
@@ -295,19 +205,16 @@ export default {
   transition: all 0.3s ease;
   cursor: pointer;
 }
-
 .feature-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
-
 .feature-card h3 {
   font-size: 1.25rem;
   font-weight: 700;
   color: #333;
   margin-bottom: 1rem;
 }
-
 .feature-desc p {
   font-size: 0.95rem;
   color: #555;
@@ -315,60 +222,54 @@ export default {
   margin: 0.25rem 0;
 }
 
-/* 오른쪽 사이드바 */
-.sidebar-right {
-  width: 300px;
-  background: #fff;
-  border-left: 1px solid #e6e6e6;
-  padding: 20px;
-}
-
-.calendar,
-.events {
+/* ✅ 오른쪽 캘린더 내부 */
+.calendar {
   margin-bottom: 30px;
 }
-
-.event {
-  padding: 15px;
-  border-radius: 12px;
-  color: #fff;
+.calendar h3 {
   margin-bottom: 10px;
+  font-weight: 600;
 }
-
-.event.blue {
-  background: #3b82f6;
-}
-
-.event.green {
-  background: #22c55e;
-}
-
-.attendance {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.events h3 {
   margin-bottom: 10px;
+  font-weight: 600;
 }
 
-.attendance button {
-  background: #19953e;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px;
-  cursor: pointer;
-  transition: 0.2s;
+/* ✅ 슬라이드 애니메이션 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
 }
 
-.attendance button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
+/* ✅ 오버레이 (모바일 전용) */
+.overlay {
+  display: none;
 }
 
-.attendance .time-info {
-  font-size: 13px;
-  color: #555;
-  margin-top: 4px;
-  text-align: left;
+@media (max-width: 1024px) {
+  .sidebar-left {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    height: calc(100vh - 64px);
+    z-index: 1200;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+  }
 }
-</style> 
+</style>
