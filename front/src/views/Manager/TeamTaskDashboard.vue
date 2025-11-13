@@ -5,116 +5,128 @@
       <h2 class="text-3xl font-extrabold text-gray-800">팀원 업무 현황</h2>
     </div>
 
-    <!-- ✅ 팀원별 카드 -->
-<div
-  v-for="(member, index) in teamSummary"
-  :key="index"
-  class="member-card bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-6"
->
-  <!-- ✅ 이름 (한 줄만) -->
-  <h3 class="font-bold text-gray-800 text-lg mb-2">{{ member.name }}</h3>
-
-  <!-- ✅ 글자 왼쪽 / 그래프 오른쪽 정렬 -->
-  <div class="summary-row">
-    <div class="summary-text">
-      <p>
-  <span class="text-gray-500">완료</span>
-  <span class="font-semibold text-green-600">{{ member.completed }}</span>
-</p>
-<p>
-  <span class="text-gray-500">진행</span>
-  <span class="font-semibold text-orange-500">{{ member.inProgress }}</span>
-</p>
-<p>
-  <span class="text-gray-500">평균 중요도</span>
-  <span class="font-semibold text-blue-500">{{ member.avgImportance }}</span>
-</p>
-</div>
-
-    <!-- ✅ 그래프 -->
-    <div class="chart-box relative">
-      <Doughnut :data="member.chartData" :options="chartOptions" />
-      <span
-        class="chart-center"
-        :style="{ color: progressColor(member.progress) }"
-      >
-        {{ member.progress }}%
-      </span>
+    <!-- ✅ 로딩 상태 -->
+    <div v-if="loading" class="text-center text-gray-500 mt-10">
+      불러오는 중...
     </div>
-  </div>
 
-  <!-- ✅ 더보기 버튼 -->
-  <button
-    class="text-sm text-blue-600 font-semibold hover:underline mt-3"
-    @click="toggleExpand(index)"
-  >
-    {{ expanded[index] ? "닫기" : "더보기" }}
-  </button>
+    <!-- ✅ 팀원별 카드 -->
+    <div
+      v-for="(member, index) in teamSummary"
+      :key="index"
+      class="member-card bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-6 mb-6"
+    >
+      <!-- ✅ 이름 -->
+      <h3 class="font-bold text-gray-800 text-lg mb-2">{{ member.name }}</h3>
 
-
-        <!-- ✅ 상세 업무 리스트 -->
-        <div v-if="expanded[index]" class="detail-table mt-3">
-          <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="py-2 px-3 border">업무명</th>
-                <th class="py-2 px-3 border">마감일</th>
-                <th class="py-2 px-3 border">중요도</th>
-                <th class="py-2 px-3 border">난이도</th>
-                <th class="py-2 px-3 border">상태</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(task, i) in member.tasks"
-                :key="i"
-                class="hover:bg-gray-50"
-              >
-                <td class="py-2 px-3 border text-left">{{ task.title }}</td>
-                <td class="py-2 px-3 border text-center">{{ formatDate(task.deadline) }}</td>
-                <td class="py-2 px-3 border text-center">{{ task.importance }}</td>
-                <td class="py-2 px-3 border text-center">{{ task.difficulty }}</td>
-                <td class="py-2 px-3 border text-center">
-                  <span
-                    :class="[
-                      'px-2 py-1 rounded text-xs font-semibold',
-                      task.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                    ]"
-                  >
-                    {{ task.completed ? "완료" : "진행중" }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- ✅ 통계 + 그래프 -->
+      <div class="summary-row">
+        <div class="summary-text">
+          <p>
+            <span class="text-gray-500">완료</span>
+            <span class="font-semibold text-green-600">{{ member.completed }}</span>
+          </p>
+          <p>
+            <span class="text-gray-500">진행</span>
+            <span class="font-semibold text-orange-500">{{ member.inProgress }}</span>
+          </p>
+          <p>
+            <span class="text-gray-500">평균 중요도</span>
+            <span class="font-semibold text-blue-500">{{ member.avgImportance }}</span>
+          </p>
         </div>
-      </div>  
+
+        <!-- ✅ 그래프 -->
+        <div class="chart-box relative">
+          <Doughnut :data="member.chartData" :options="chartOptions" />
+          <span
+            class="chart-center"
+            :style="{ color: progressColor(member.progress) }"
+          >
+            {{ member.progress }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- ✅ 더보기 버튼 -->
+      <button
+        class="text-sm text-blue-600 font-semibold hover:underline mt-3"
+        @click="toggleExpand(index)"
+      >
+        {{ expanded[index] ? "닫기" : "더보기" }}
+      </button>
+
+      <!-- ✅ 상세 업무 리스트 -->
+      <div v-if="expanded[index]" class="detail-table mt-3">
+        <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="py-2 px-3 border">업무명</th>
+              <th class="py-2 px-3 border">마감일</th>
+              <th class="py-2 px-3 border">중요도</th>
+              <th class="py-2 px-3 border">난이도</th>
+              <th class="py-2 px-3 border">상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(task, i) in member.tasks"
+              :key="i"
+              class="hover:bg-gray-50"
+            >
+              <td class="py-2 px-3 border text-left">{{ task.title }}</td>
+              <td class="py-2 px-3 border text-center">{{ formatDate(task.deadline) }}</td>
+              <td class="py-2 px-3 border text-center">{{ task.importance }}</td>
+              <td class="py-2 px-3 border text-center">{{ task.difficulty }}</td>
+              <td class="py-2 px-3 border text-center">
+                <span
+                  :class="[
+                    'px-2 py-1 rounded text-xs font-semibold',
+                    task.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  ]"
+                >
+                  {{ task.completed ? "완료" : "진행중" }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ✅ 데이터 없음 -->
-    <div v-if="!loading && !teamSummary.length" class="text-gray-500 text-center mt-12 text-lg">
+    <div
+      v-if="!loading && !teamSummary.length"
+      class="text-gray-500 text-center mt-12 text-lg"
+    >
       현재 등록된 팀 업무가 없습니다.
     </div>
-
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, getCurrentInstance } from "vue";
 import { Doughnut } from "vue-chartjs";
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from "chart.js";
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
 
+const { proxy } = getCurrentInstance();
 const loading = ref(true);
 const tasks = ref([]);
 const expanded = ref([]);
 
 const fetchTeamTasks = async () => {
   try {
-    const res = await this.$axios.get("/api/manager/team-tasks", { withCredentials: true });
-    if (Array.isArray(res.data)) tasks.value = res.data;
+    const res = await proxy.$axios.get("/api/manager/team-tasks", { withCredentials: true });
+    if (res.data?.success && Array.isArray(res.data.tasks)) {
+      tasks.value = res.data.tasks;
+    } else if (Array.isArray(res.data)) {
+      // 백엔드가 단순 배열 반환 시 호환 처리
+      tasks.value = res.data;
+    }
   } catch (err) {
-    console.error("팀 업무 조회 실패:", err);
+    console.error("❌ 팀 업무 조회 실패:", err);
   } finally {
     loading.value = false;
   }
@@ -126,7 +138,8 @@ const teamSummary = computed(() => {
   const grouped = {};
   tasks.value.forEach((t) => {
     const name = t.User?.name || "미지정";
-    if (!grouped[name]) grouped[name] = { total: 0, completed: 0, importanceSum: 0, tasks: [] };
+    if (!grouped[name])
+      grouped[name] = { total: 0, completed: 0, importanceSum: 0, tasks: [] };
     grouped[name].total++;
     grouped[name].importanceSum +=
       t.importance === "높음" ? 3 : t.importance === "중간" ? 2 : 1;
@@ -172,9 +185,12 @@ const toggleExpand = (i) => {
 
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`;
+  return isNaN(date)
+    ? "-"
+    : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(date.getDate()).padStart(2, "0")}`;
 };
 
 const chartOptions = {
@@ -185,6 +201,7 @@ const chartOptions = {
 
 onMounted(fetchTeamTasks);
 </script>
+
 
 
 
