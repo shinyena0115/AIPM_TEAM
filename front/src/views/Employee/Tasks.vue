@@ -20,29 +20,11 @@
       <p class="tip">💡 AI가 마감일과 중요도를 고려하여 선정했습니다</p>
     </div>
 
-    <!-- 업무 마감일 캘린더 -->
-    <div v-if="tasks.length > 0" class="card calendar-card">
-      <h2>📅 업무 마감일 캘린더</h2>
-      <p class="description">날짜를 클릭하면 해당일의 업무를 확인할 수 있습니다</p>
-      <div class="legend">
-        <span class="legend-item"><span class="dot urgent"></span> 24시간 이내</span>
-        <span class="legend-item"><span class="dot soon"></span> 72시간 이내</span>
-        <span class="legend-item"><span class="dot later"></span> 여유있음</span>
-      </div>
-      <CalendarComponent :tasks="incompleteTasks" @date-selected="handleDateSelected" />
-    </div>
-
-    <!-- 선택된 날짜의 업무 목록 팝업 -->
-    <div v-if="selectedDateTasks.length > 0" class="card">
-      <h2>📋 {{ selectedDateStr }} 업무 목록 ({{ selectedDateTasks.length }}개)</h2>
-      <div class="selected-tasks-list">
-        <div v-for="task in selectedDateTasks" :key="task.id" class="task-item">
-          <h4>{{ task.title }}</h4>
-          <p class="task-meta">마감: {{ formatDate(task.deadline) }} | 소요시간: {{ task.estimatedTime }}분</p>
-          <p class="task-meta">난이도: {{ task.difficulty }} | 유형: {{ task.taskType }} | 중요도: {{ task.importance }}</p>
-        </div>
-      </div>
-      <button @click="selectedDateTasks = []" class="btn-outline">닫기</button>
+    <!-- 내 일정 캘린더 (업무 + 연차) -->
+    <div class="card calendar-card">
+      <h2>📅 내 일정 캘린더</h2>
+      <p class="description">업무 마감일과 연차 일정을 한눈에 확인하세요</p>
+      <CalendarComponent />
     </div>
 
     <!-- 업무 요청서 AI 분석 -->
@@ -380,9 +362,7 @@ export default {
       inputMode: 'file', // 'file' 또는 'text'
       textInput: '', // 텍스트 직접 입력
       isRecommending: false,
-      mergeMultiplePages: false,
-      selectedDateTasks: [],
-      selectedDateStr: ''
+      mergeMultiplePages: false
     };
   },
   mounted() {
@@ -726,22 +706,6 @@ export default {
 
       this.analyzedTasks = [];
       alert(`${savedCount}개 업무가 저장되었습니다!`);
-    },
-    handleDateSelected({ date, tasks }) {
-      this.selectedDateTasks = tasks;
-      this.selectedDateStr = date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-
-      // 스크롤을 선택된 날짜의 업무 목록으로 이동
-      this.$nextTick(() => {
-        const element = document.querySelector('.selected-tasks-list');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
     }
   }
 };
@@ -1289,77 +1253,6 @@ textarea {
 .calendar-card .description {
   font-size: 0.9rem;
   color: #6b7280;
-  margin-bottom: 1rem;
-}
-
-/* 범례 */
-.legend {
-  display: flex;
-  gap: 1.5rem;
   margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-.legend-item .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.legend-item .dot.urgent {
-  background-color: #ef4444;
-}
-
-.legend-item .dot.soon {
-  background-color: #f59e0b;
-}
-
-.legend-item .dot.later {
-  background-color: #10b981;
-}
-
-/* 선택된 날짜의 업무 목록 */
-.selected-tasks-list {
-  margin-top: 1rem;
-}
-
-.selected-tasks-list .task-item {
-  background: #f9fafb;
-  border-left: 4px solid #10b981;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.selected-tasks-list .task-item h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
-}
-
-.btn-outline {
-  background: white;
-  color: #10b981;
-  border: 2px solid #10b981;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.6rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 1rem;
-}
-
-.btn-outline:hover {
-  background: #10b981;
-  color: white;
 }
 </style>

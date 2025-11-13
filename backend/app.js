@@ -89,9 +89,10 @@ var userManageRouter = require("./routes/admin/userManage");
 var vacationRouter = require("./routes/employee/vacation");
 var managerVacations = require("./routes/manager/vacations");
 
-
 // employee tasks 라우터
 var employeeTasksRouter = require("./routes/employee/tasks");
+// employee calendar 라우터
+var employeeCalendarRouter = require("./routes/employee/calendar");
 // AI 분석용 라우터
 var aiTaskRouter = require("./routes/api/apiTask");
 
@@ -115,9 +116,9 @@ app.use("/admin/users", userManageRouter);
 app.use("/api/vacations", vacationRouter);
 app.use("/api/manager/vacations", managerVacations);
 
-
 app.use("/api/ai", aiTaskRouter);        // AI 분석용
 app.use("/api/tasks", employeeTasksRouter);
+app.use("/api/calendar", employeeCalendarRouter);  // 팀원용 캘린더
 // ======================================
 // ✅ 6. 오류 처리
 // ======================================
