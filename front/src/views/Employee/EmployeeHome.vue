@@ -1,31 +1,15 @@
 <template>
   <div class="employee-layout">
     <!-- ✅ 상단 고정 헤더 -->
-    <EmployeeHeader
-      :currentUser="currentUser"
-      @toggle-sidebar="toggleSidebar"
-    />
+    <EmployeeHeader class="header-fixed" @toggle-sidebar="toggleSidebar" />
 
-    <!-- ✅ 헤더 아래: 왼쪽 사이드바 + 메인 + 오른쪽 캘린더 -->
+    <!-- ✅ 사이드바 + 메인 콘텐츠 -->
     <div class="content-area">
-      <!-- 왼쪽 사이드바 (햄버거로 토글 가능) -->
-      <transition name="slide">
-        <EmployeeSidebar
-          v-if="showSidebar"
-          class="sidebar-left"
-          @close-sidebar="toggleSidebar"
-        />
-      </transition>
+      <!-- ✅ 왼쪽 사이드바 -->
+      <EmployeeSidebar v-show="showSidebar" class="sidebar" />
 
-      <!-- 오버레이 (모바일 전용) -->
-      <div
-        v-if="showSidebar"
-        class="overlay"
-        @click="toggleSidebar"
-      ></div>
-
-      <!-- 메인 콘텐츠 -->
-      <main class="main">
+      <!-- ✅ 메인 영역 -->
+      <div class="main-content" :class="{ 'sidebar-hidden': !showSidebar }">
         <div class="welcome">
           <h1>{{ currentUser?.name }}님, 환영합니다!</h1>
           <p>오늘도 좋은 하루 되세요 😊</p>
@@ -49,9 +33,9 @@
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
-      <!-- ✅ 오른쪽 캘린더 -->
+      <!-- ✅ 오른쪽 캘린더 사이드바 -->
       <aside class="sidebar-right">
         <div class="calendar">
           <h3>📅 Calendar</h3>
@@ -116,62 +100,57 @@ export default {
 </script>
 
 <style scoped>
-/* 전체 레이아웃 */
+/* ===== 전체 레이아웃 ===== */
 .employee-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: #f8f9fc;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
 }
 
-/* ✅ 헤더 */
-.employee-layout > :first-child {
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-/* ✅ 헤더 아래: 3분할 레이아웃 */
 .content-area {
   display: flex;
-  flex: 1;
-  overflow: hidden;
-  position: relative;
+  margin-top: 64px;
+  min-height: calc(100vh - 64px);
 }
 
-/* ✅ 왼쪽 사이드바 */
-.sidebar-left {
+.sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
   width: 240px;
-  background: #ffffff;
-  border: none;
-  flex-shrink: 0;
-  position: sticky;
-  top: 60px;
-  height: calc(100vh - 60px);
-  overflow: hidden;
-  z-index: 1100;
+  height: calc(100vh - 64px);
+  background-color: #fff;
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+  transition: all 0.3s ease;
 }
 
-/* ✅ 가운데 메인 */
-.main {
+.main-content {
   flex: 1;
-  padding: 30px;
+  margin-left: 240px;
+  padding: 2rem;
+  transition: all 0.3s ease;
   overflow-y: auto;
-  z-index: 1;
+}
+
+.main-content.sidebar-hidden {
+  margin-left: 0;
 }
 
 /* ✅ 오른쪽 캘린더 사이드바 */
 .sidebar-right {
   width: 300px;
   background: #fff;
-  border-left: 1px solid #e6e6e6;
+  border-left: 1px solid #e5e7eb;
   padding: 20px;
   flex-shrink: 0;
-  position: sticky;
-  top: 60px;
-  height: calc(100vh - 60px);
   overflow-y: auto;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
 }
 
 /* ✅ 인사말 */
@@ -234,41 +213,4 @@ export default {
   font-weight: 600;
 }
 
-/* ✅ 슬라이드 애니메이션 */
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(-100%);
-  opacity: 0;
-}
-
-/* ✅ 오버레이 (모바일 전용) */
-.overlay {
-  display: none;
-}
-
-@media (max-width: 1024px) {
-  .sidebar-left {
-    position: fixed;
-    top: 64px;
-    left: 0;
-    height: calc(100vh - 64px);
-    z-index: 1200;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .overlay {
-    display: block;
-    position: fixed;
-    top: 64px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 1000;
-  }
-}
 </style>

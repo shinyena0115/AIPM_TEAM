@@ -114,7 +114,7 @@ export default {
     },
     async logout() {
       try {
-        await axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
+        await this.$axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
         this.$router.push("/login");
       } catch (err) {
         console.error("로그아웃 실패:", err);
