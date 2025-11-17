@@ -13,6 +13,10 @@ import ManagerHome from '../views/Manager/ManagerHome.vue'
 import VacationStatus from '../views/Employee/VacationStatus.vue'
 import PeerReview from '../views/Employee/PeerReview.vue'
 import TeamTaskDashboard from '../views/Manager/TeamTaskDashboard.vue'
+import AIFeedback from '../views/Manager/AIFeedback.vue'
+
+
+
 const routes = [
   {
     path: '/',
@@ -124,6 +128,13 @@ const routes = [
     component: TeamTaskDashboard 
   },
   
+  
+    {
+    path: '/manager/ai-feedback',       // ✅ AI 인사평가 페이지
+    name: 'AIFeedback',
+    component: AIFeedback
+  },
+
 
   
 
