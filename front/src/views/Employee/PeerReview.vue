@@ -130,7 +130,7 @@ export default {
     async loadSubmitted() {
       try {
         const userId = localStorage.getItem("user_id");
-        const res = await axios.get("/api/peer-review/received/" + userId, {
+        const res = await this.$axios.get("/api/peer-review/received/" + userId, {
           withCredentials: true,
         });
         this.submitted = res.data.reviews;
@@ -141,7 +141,7 @@ export default {
     async submitReview() {
       if (!this.form.reviewee_id) return alert("평가 대상을 선택하세요.");
       try {
-        await axios.post("/api/peer-review", this.form, { withCredentials: true });
+        await this.$axios.post("/api/peer-review", this.form, { withCredentials: true });
         alert("평가가 성공적으로 제출되었습니다!");
         this.form = { reviewee_id: "", teamwork: 3, communication: 3, responsibility: 3, comment: "" };
         await this.loadSubmitted();

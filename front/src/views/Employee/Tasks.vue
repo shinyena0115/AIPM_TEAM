@@ -1,6 +1,18 @@
 <template>
-  <div class="tasks-page">
-    <div class="header">
+  <div class="employee-layout">
+    <!-- ✅ 상단 고정 헤더 -->
+    <EmployeeHeader class="header-fixed" @toggle-sidebar="toggleSidebar" />
+
+    <!-- ✅ 사이드바 + 메인 콘텐츠 -->
+    <div class="content-area">
+      <!-- ✅ 왼쪽 사이드바 -->
+      <EmployeeSidebar v-show="showSidebar" class="sidebar" />
+
+      <!-- ✅ 오른쪽 메인 영역 -->
+      <div class="main-content" :class="{ 'sidebar-hidden': !showSidebar }">
+        <!-- ✅ 실제 페이지 내용 -->
+        <div class="tasks-page">
+        <div class="header">
       <h1>개발 업무 관리</h1>
       <p>AI가 업무 우선순위를 분석하여 추천합니다</p>
     </div>
@@ -325,20 +337,28 @@
         </div>
       </div>
     </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import CalendarComponent from '@/components/CalendarComponent.vue';
+import EmployeeSidebar from '@/components/EmployeeSidebar.vue';
+import EmployeeHeader from '@/components/EmployeeHeader.vue';
 
 export default {
   name: 'TaskView',
   components: {
-    CalendarComponent
+    CalendarComponent,
+    EmployeeSidebar,
+    EmployeeHeader
   },
   data() {
     return {
       currentUser: null,
+      showSidebar: true,
       tasks: [],
       newTask: {
         title: '',
@@ -362,6 +382,11 @@ export default {
   mounted() {
     this.loadCurrentUser();
     this.loadTasks();
+
+    // ✅ 화면 크기에 따라 초기 표시 설정
+    if (window.innerWidth <= 1024) {
+      this.showSidebar = false;
+    }
   },
   computed: {
     incompleteTasks() {
@@ -399,6 +424,9 @@ export default {
     }
   },
   methods: {
+    toggleSidebar() {
+      this.showSidebar = !this.showSidebar;
+    },
     async loadCurrentUser() {
       try {
         var response = await this.$axios.get('http://localhost:3000/api/info');
@@ -485,7 +513,7 @@ export default {
       this.isRecommending = true;
 
       try {
-        var response = await this.$axios.post('http://localhost:3000/api/tasks/ai-priority', {
+        var response = await this.$axios.post('http://localhost:3000/api/ai/tasks/ai-priority', {
           tasks: this.incompleteTasks
         });
 
@@ -706,6 +734,45 @@ export default {
 </script>
 
 <style scoped>
+/* ===== 전체 레이아웃 ===== */
+.employee-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+}
+
+.content-area {
+  display: flex;
+  margin-top: 64px;
+  min-height: calc(100vh - 64px);
+}
+
+.sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  width: 240px;
+  height: calc(100vh - 64px);
+  background-color: #fff;
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+  transition: all 0.3s ease;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.main-content.sidebar-hidden {
+  margin-left: 0;
+}
+
 .tasks-page {
   min-height: 100vh;
   background-color: #f9fafb;
@@ -713,7 +780,6 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 3rem 1rem;
-  font-family: "Pretendard", "Noto Sans KR", sans-serif;
 }
 
 .header {
