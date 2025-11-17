@@ -15,15 +15,19 @@ function canRequestEvaluator(sessionUser, targetUserId) {
 }
 
 // -------------------------------------------------------------
-// 퍼센타일 계산
+// 퍼센타일 계산 (정확한 Percent Rank 공식으로 수정)
 // -------------------------------------------------------------
 function percentile(arr, val) {
   if (!arr || arr.length === 0) return 50;
+
   const sorted = arr.slice().sort((a, b) => a - b);
-  let rank = sorted.findIndex(x => val <= x);
-  if (rank === -1) rank = sorted.length;
-  return Math.round((rank / sorted.length) * 100);
+
+  // val 이하의 값 개수
+  const count = sorted.filter(x => x <= val).length;
+
+  return Math.round((count / sorted.length) * 100);
 }
+
 
 // ==========================================================
 // 🔥 0) /evaluate → /analyze-performance 자동 매핑
@@ -129,6 +133,67 @@ router.post("/analyze-performance", async (req, res) => {
       where: { reviewee_id: targetUserId },
     });
 
+// -------------------------------------------------------------
+// 🔥 2-1) Attendance 상세 분석 (출퇴근 자동 판정 활용) — 최종 안정 버전
+// -------------------------------------------------------------
+let normalCount = 0;
+let lateCountUser = 0;
+let earlyLeaveCount = 0;
+let overtimeCount = 0;
+
+attendances.forEach(a => {
+  if (!a || !a.status) return;
+
+  // 상태 문자열을 정확히 분리
+  const states = a.status
+    .split(",")        // "정상, 야근" → ["정상", "야근"]
+    .map(s => s.trim()) // 공백 제거
+    .filter(Boolean);   // 빈 문자열 제거
+
+  for (const s of states) {
+    switch (s) {
+      case "정상":
+        normalCount++;
+        break;
+      case "지각":
+        lateCountUser++;
+        break;
+      case "조퇴":
+        earlyLeaveCount++;
+        break;
+      case "야근":
+        overtimeCount++;
+        break;
+      default:
+        // 그 외 문자열은 무시 (오염 데이터 대비)
+        break;
+    }
+  }
+});
+
+// 결과 내보내기
+const attendanceDetails = {
+  normal: normalCount,
+  late: lateCountUser,
+  earlyLeave: earlyLeaveCount,
+  overtime: overtimeCount
+};
+
+   // -------------------------------------------------------------
+// 휴가일수 → 승인된 휴가만 계산
+// -------------------------------------------------------------
+let vacationDays = 0;
+
+vacations.forEach(v => {
+  // 여기 또한 status는 "승인"
+  if (v.status !== "승인") return;
+
+  const s = new Date(v.startDate);
+  const e = new Date(v.endDate);
+
+  vacationDays += Math.round((e - s) / (1000 * 3600 * 24)) + 1;
+});
+
     // -------------------------------------------------------------
     // 3) 팀 전체 정량 기준 수집 (퍼센타일용)
     // -------------------------------------------------------------
@@ -186,9 +251,7 @@ router.post("/analyze-performance", async (req, res) => {
     });
 
     const onTimeRate = done === 0 ? 0 : Math.round((onTime / done) * 100);
-    const avgLateDays =
-      lateCount === 0 ? 0 : Number((lateDaysSum / lateCount).toFixed(2));
-
+    
     const attendanceCount = attendances.length;
 
     let checkInList = [];
@@ -210,13 +273,7 @@ router.post("/analyze-performance", async (req, res) => {
             avgCheckInMin % 60
           ).padStart(2, "0")}`;
 
-    // 휴가일수 계산
-    let vacationDays = 0;
-    vacations.forEach(v => {
-      const s = new Date(v.startDate);
-      const e = new Date(v.endDate);
-      vacationDays += Math.round((e - s) / (1000 * 3600 * 24)) + 1;
-    });
+   
 
     // 동료평가 평균
     const peerCount = peerReviews.length;
@@ -292,7 +349,6 @@ recommended_grade: ${recommendedGrade}
 완료 업무: ${completedTasks}
 업무 완료율: ${taskCompletionRate}%
 마감 준수율: ${onTimeRate}%
-평균 지각 일수: ${avgLateDays}
 출근 횟수: ${attendanceCount}
 평균 체크인: ${avgCheckIn || "N/A"}
 휴가일수: ${vacationDays}
@@ -375,7 +431,6 @@ try {
         completedTasks,
         taskCompletionRate,
         onTimeRate,
-        avgLateDays,
         attendanceCount,
         avgCheckIn,
         vacationDays,
@@ -384,6 +439,14 @@ try {
         responsibilityAvg,
         peerAvg,
       },
+       // 🔥 여기 추가!!!!
+      attendanceDetails: {
+      normal: normalCount,
+      late: lateCountUser,
+      earlyLeave: earlyLeaveCount,
+      overtime: overtimeCount
+      },
+
       percentiles: {
         taskPercentile,
         deadlinePercentile,
@@ -400,3 +463,5 @@ try {
 });
 
 module.exports = router;
+
+

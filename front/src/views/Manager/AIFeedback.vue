@@ -64,12 +64,18 @@
   <li>완료 업무: {{ result.raw_metrics.completedTasks }}</li>
   <li>업무 완료율: {{ result.raw_metrics.taskCompletionRate }}%</li>
   <li>마감 준수율: {{ result.raw_metrics.onTimeRate }}%</li>
-  <li>평균 지각 일수: {{ result.raw_metrics.avgLateDays }}</li>
   <li>출근 횟수: {{ result.raw_metrics.attendanceCount }}</li>
   <li>평균 체크인: {{ result.raw_metrics.avgCheckIn }}</li>
   <li>휴가일수: {{ result.raw_metrics.vacationDays }}</li>
 </ul>
-
+<!-- 📌 출퇴근 상세 분석 (Safe Rendering) -->
+<h3>출퇴근 상세 분석</h3>
+<ul class="metrics-box">
+  <li>정상 출근: {{ result.attendanceDetails?.normal ?? 0 }}</li>
+  <li>지각: {{ result.attendanceDetails?.late ?? 0 }}</li>
+  <li>조퇴: {{ result.attendanceDetails?.earlyLeave ?? 0 }}</li>
+  <li>야근: {{ result.attendanceDetails?.overtime ?? 0 }}</li>
+</ul>
 <!-- 📌 동료평가 -->
 <h3>동료평가 평균(1~5)</h3>
 <ul class="metrics-box">
@@ -210,62 +216,225 @@ export default {
 </script>
 
 <style scoped>
+/* 전체 레이아웃 */
 .feedback-layout {
   display: flex;
   height: 100vh;
-  background: #f9fafb;
+  background: #f5f7fa;
+  font-family: "Inter", "Pretendard", sans-serif;
 }
+
+/* 메인 컨텐츠 영역 */
 .content-area {
   flex: 1;
-  padding: 30px;
+  padding: 40px;
   overflow-y: auto;
+  background: linear-gradient(to bottom right, #f8fafc, #eef2ff);
 }
+
 .ai-feedback-page {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
 }
+
+/* ================================
+      헤더 영역
+================================ */
+.header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.5px;
+}
+
+.header p {
+  font-size: 15px;
+  margin-top: 6px;
+  color: #4b5563;
+}
+
+/* ================================
+        날짜 선택 필터
+================================ */
+.filters {
+  display: flex;
+  gap: 20px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.filters label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.filters input {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+/* ================================
+        팀원 목록 카드
+================================ */
 .member-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 18px;
 }
+
 .member-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.08);
+  transition: 0.2s;
+  border-left: 4px solid #6366f1;
 }
+
+.member-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2);
+}
+
+.member-card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.member-card p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
 .member-card button {
-  margin-top: 10px;
-  padding: 8px 16px;
-  background: #4f46e5;
-  color: #fff;
+  padding: 10px 16px;
+  background: linear-gradient(to right, #4f46e5, #6366f1);
+  color: white;
   border-radius: 8px;
+  width: 100%;
+  font-weight: 600;
+  transition: 0.2s;
 }
+
+.member-card button:hover {
+  opacity: 0.9;
+}
+
+/* ================================
+            로딩 & 오류
+================================ */
 .loading-box {
-  padding: 16px;
+  padding: 18px;
   background: #e0e7ff;
-  border-radius: 8px;
+  border-radius: 10px;
+  text-align: center;
+  color: #4f46e5;
+  font-weight: 600;
 }
+
 .error-box {
-  padding: 16px;
+  padding: 18px;
   background: #fee2e2;
   color: #b91c1c;
-  border-radius: 8px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
 }
+
+/* ================================
+            결과 카드 박스
+================================ */
 .result-card {
-  background: #fff;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  background: white;
+  padding: 32px;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  animation: fadeIn 0.3s ease;
 }
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(10px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+
+.result-card h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
 .team {
+  margin-bottom: 12px;
   color: #6b7280;
+  font-size: 14px;
 }
+
+/* ================================
+            지표 리스트
+================================ */
+.metrics-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.metrics-box li {
+  padding: 10px;
+  background: white;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 14px;
+  color: #374151;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* ================================
+        강점/약점/제안
+================================ */
 .summary {
-  margin: 16px 0;
+  background: #f8fafc;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 10px;
+}
+
+h3 {
+  font-size: 20px;
+  margin: 16px 0 10px;
+  color: #1e293b;
+}
+
+h4 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  color: #374151;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+ul li {
+  padding: 8px 6px;
+  font-size: 14px;
+  color: #4b5563;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+ul li:last-child {
+  border-bottom: none;
 }
 </style>

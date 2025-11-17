@@ -59,13 +59,16 @@ router.post("/checkin", async (req, res) => {
 
 
 // ✅ 퇴근 기록
+// ✅ 퇴근 기록
 router.post("/checkout", async (req, res) => {
   try {
     const { user_id } = req.body;
     const today = getKSTDate();
     const currentTime = getKSTTime();
 
-    const attendance = await Attendance.findOne({ where: { user_id, date: today } });
+    const attendance = await Attendance.findOne({
+      where: { user_id, date: today }
+    });
 
     if (!attendance) {
       return res.status(404).json({ message: "출근 기록이 없습니다." });
@@ -77,14 +80,24 @@ router.post("/checkout", async (req, res) => {
 
     attendance.check_out = currentTime;
 
-    let newStatus = attendance.status; // 기존 내용 유지
+    let newStatus = attendance.status; // 기존 출근 상태 유지
 
-    // 조퇴 판정
+    // -------------------------------
+    // 🔥 퇴근 상태 판정
+    // -------------------------------
+    const isLate = newStatus.includes("지각");
+
+    // (1) 18:00 이전 퇴근 → 무조건 조퇴
     if (currentTime < "18:00:00") {
       newStatus += ", 조퇴";
-    } else {
-      // 야근 판정
-      newStatus += ", 야근";
+    }
+    // (2) 18:00 이후 퇴근 → 정상 퇴근
+    else {
+      // 지각 출근 + 야근은 없음 → 지각 + 야근 조합 금지
+      // 출근 상태가 정상이고 20:00 이후 퇴근한 경우만 야근 인정
+      if (!isLate && currentTime >= "20:00:00") {
+        newStatus += ", 야근";
+      }
     }
 
     attendance.status = newStatus;
