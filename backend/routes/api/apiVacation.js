@@ -36,13 +36,17 @@ router.post("/ai-vacation-priority", async (req, res) => {
       const userId = vac.user?.user_id;
 
       const incompleteTasks = await Task.findAll({
-        where: {
-          user_id: userId,
-          completed: 0,
-          deadline: { [Op.between]: [vac.startDate, vac.endDate] },
-        },
-        attributes: ["title", "deadline", "importance", "difficulty"],
-      });
+  where: {
+    user_id: userId,
+    completed: 0,
+    // 🔥 업무 deadline 이 연차 종료일 이전이면 미완료 업무로 간주
+    deadline: {
+      [Op.lte]: vac.endDate
+    }
+  },
+  attributes: ["title", "deadline", "importance", "difficulty"],
+});
+
 
       if (!teamGroups[teamName]) teamGroups[teamName] = [];
 
@@ -95,10 +99,10 @@ router.post("/ai-vacation-priority", async (req, res) => {
   {
     "team": "회계",
     "priority": [
-      { "name": "김철수", "urgencyLevel": 1, "recommendation": "팀장 판단 필요", "reason": "업무 미완료 상태로 연차 신청함" },
+      { "name": "김철수", "urgencyLevel": 1, "recommendation": "반려", "reason": "업무 미완료 상태로 연차 신청함" },
       { "name": "gg", "urgencyLevel": 1, "recommendation": "승인", "reason": "개인적인 휴식 목적" }
     ],
-    "comment": "김철수는 업무 미완료로 팀장 판단 필요"
+    "comment": "김철수는 업무 미완료로 반려"
   }
 ]
 

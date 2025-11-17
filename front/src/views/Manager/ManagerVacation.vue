@@ -25,11 +25,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="vac in vacations" :key="vac.vacation_id">
+              <tr
+                v-for="vac in vacations"
+                :key="vac.vacation_id"
+                :class="getRowClass(vac)"
+              >
                 <td>{{ vac.user?.name }}</td>
                 <td>{{ vac.user?.Team?.name || '-' }}</td>
                 <td>{{ vac.startDate }} ~ {{ vac.endDate }}</td>
                 <td>{{ vac.reason }}</td>
+
                 <td>
                   <span :class="'status ' + vac.status">{{ vac.status }}</span>
                   <template v-if="vac.status === '반려' && vac.rejection_reason">
@@ -55,9 +60,10 @@
         <!-- ✅ 오른쪽: AI 판단 결과 -->
         <div class="ai-panel">
           <h3>
-  <img :src="aiIcon" alt="AI 아이콘" class="ai-icon" />
-  AI 판단 결과
-</h3>
+            <img :src="aiIcon" alt="AI 아이콘" class="ai-icon" />
+            AI 판단 결과
+          </h3>
+
           <div v-if="Array.isArray(aiResults) && aiResults.length > 0">
             <div
               v-for="teamResult in aiResults"
@@ -79,8 +85,17 @@
               <p class="ai-comment">💬 {{ teamResult.comment }}</p>
             </div>
           </div>
+
           <div v-else class="ai-empty">
             아직 AI 판단 결과가 없습니다.
+          </div>
+
+          <!-- AI 자동 적용 -->
+          <div class="ai-apply-box">
+            <h4>AI 추천 자동 적용</h4>
+            <button class="btn ai-apply-btn" @click="applyAIResults">
+              AI 추천대로 승인/반려 적용하기
+            </button>
           </div>
         </div>
       </div>
@@ -104,39 +119,71 @@
 <script>
 import ManagerSidebar from "@/components/ManagerSidebar.vue";
 import aiIcon from "@/assets/ai.png";
+
 export default {
   name: "ManagerVacation",
   components: { ManagerSidebar },
   data() {
     return {
       vacations: [],
-      aiResults: [], // ✅ 기본값: 빈 배열
+      aiResults: [],
       showRejectModal: false,
       selectedVacationId: null,
       rejectionReason: "",
-       aiIcon, 
+      aiIcon,
     };
   },
   async created() {
     await this.loadVacations();
     await this.loadAIPredictions();
   },
+
+  computed: {
+  aiRecommendationMap() {
+    const map = {};
+
+    if (Array.isArray(this.aiResults)) {
+      for (const teamResult of this.aiResults) {
+        // 🔥 priority가 배열인지 반드시 체크
+        if (!Array.isArray(teamResult.priority)) continue;
+
+        for (const p of teamResult.priority) {
+          if (!p || !p.name) continue;
+          map[p.name] = p.recommendation;
+        }
+      }
+    }
+
+    return map;
+  },
+},
+
   methods: {
-    // ✅ 연차 목록 불러오기
+    /* 테이블 행 색상 설정 */
+    getRowClass(vac) {
+      if (vac.status !== "대기") return "";
+
+      const rec = this.aiRecommendationMap[vac.user?.name];
+
+      if (rec === "승인") return "ai-row-approve";
+      if (rec === "반려") return "ai-row-reject";
+
+      return "";
+    },
+
+    /* 연차 데이터 불러오기 */
     async loadVacations() {
       try {
         const res = await this.$axios.get("http://localhost:3000/api/manager/vacations", {
           withCredentials: true,
         });
-        if (res.data.success) {
-          this.vacations = res.data.vacations;
-        }
+        if (res.data.success) this.vacations = res.data.vacations;
       } catch (err) {
         console.error("연차 목록 불러오기 오류:", err);
       }
     },
 
-    // ✅ AI 판단 결과 가져오기 (조건 수정 ✅)
+    /* AI 판단 데이터 가져오기 */
     async loadAIPredictions() {
       try {
         const today = new Date().toISOString().split("T")[0];
@@ -146,7 +193,6 @@ export default {
           { withCredentials: true }
         );
 
-        // ✅ success 없어도 results만 있으면 처리되게 수정
         if (res.data.results) {
           this.aiResults = Array.isArray(res.data.results)
             ? res.data.results
@@ -159,6 +205,7 @@ export default {
 
     async updateStatus(vacationId, status) {
       if (!confirm(`해당 연차를 ${status}하시겠습니까?`)) return;
+
       try {
         const res = await this.$axios.post(
           `http://localhost:3000/api/manager/vacations/${vacationId}/status`,
@@ -174,8 +221,8 @@ export default {
       }
     },
 
-    openRejectModal(vacationId) {
-      this.selectedVacationId = vacationId;
+    openRejectModal(id) {
+      this.selectedVacationId = id;
       this.showRejectModal = true;
     },
     closeRejectModal() {
@@ -183,6 +230,7 @@ export default {
       this.selectedVacationId = null;
       this.rejectionReason = "";
     },
+
     async submitRejection() {
       if (!this.rejectionReason.trim()) {
         alert("반려 사유를 입력해주세요.");
@@ -203,11 +251,64 @@ export default {
         console.error("반려 처리 오류:", err);
       }
     },
+
+    /* AI 추천 자동 적용 */
+    async applyAIResults() {
+      try {
+        const payload = [];
+
+        for (const teamResult of this.aiResults) {
+          for (const p of teamResult.priority) {
+            const target = this.vacations.find(v => v.user?.name === p.name);
+            if (target) {
+              payload.push({
+                vacationId: target.vacation_id,
+                recommendation: p.recommendation,
+                reason: p.reason,
+              });
+            }
+          }
+        }
+
+        const res = await this.$axios.post(
+          "http://localhost:3000/api/manager/vacations/ai-apply",
+          { aiResults: payload },
+          { withCredentials: true }
+        );
+
+        if (res.data.success) {
+          alert("AI 추천이 적용되었습니다!");
+          this.loadVacations();
+        } else {
+          alert(res.data.message || "AI 적용 실패");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("서버 오류 발생");
+      }
+    },
   },
 };
 </script>
 
 <style scoped>
+/* 행 색상 */
+.ai-row-approve {
+  background-color: #e9f7ee !important;
+}
+
+.ai-row-reject {
+  background-color: #fdecec !important;
+}
+
+/* 나머지 CSS 동일 */
+.layout-container {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  justify-content: center;
+}
+
 .layout-container {
   display: flex;
   gap: 2rem;
@@ -435,3 +536,5 @@ textarea {
 }
 
 </style>
+
+
