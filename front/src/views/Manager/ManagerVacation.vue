@@ -1,9 +1,9 @@
 <template>
   <div class="manager-vacation-page">
-    <!-- ✅ 사이드바 -->
+    <!-- 사이드바 -->
     <ManagerSidebar />
 
-    <!-- ✅ 메인 컨텐츠 -->
+    <!-- 메인 내용 -->
     <div class="content">
       <div class="header">
         <h1>연차 승인 관리</h1>
@@ -11,7 +11,7 @@
       </div>
 
       <div class="layout-container">
-        <!-- ✅ 왼쪽: 연차 테이블 -->
+        <!-- 왼쪽 테이블 -->
         <div class="table-card">
           <table>
             <thead>
@@ -25,8 +25,9 @@
               </tr>
             </thead>
             <tbody>
+              <!-- 정렬된 리스트 사용 -->
               <tr
-                v-for="vac in vacations"
+                v-for="vac in computedVacations"
                 :key="vac.vacation_id"
                 :class="getRowClass(vac)"
               >
@@ -57,7 +58,7 @@
           </table>
         </div>
 
-        <!-- ✅ 오른쪽: AI 판단 결과 -->
+        <!-- 오른쪽: AI 결과 -->
         <div class="ai-panel">
           <h3>
             <img :src="aiIcon" alt="AI 아이콘" class="ai-icon" />
@@ -74,8 +75,12 @@
               <ul>
                 <li
                   v-for="p in teamResult.priority"
-                  :key="p.name"
-                  :class="p.recommendation === '승인' ? 'ai-approve' : 'ai-reject'"
+                  :key="p.name + p.startDate + p.endDate"
+                  :class="{
+                    'ai-approve': p.recommendation === '승인',
+                    'ai-reject': p.recommendation === '반려',
+                    'ai-manager-review': p.recommendation === '팀장 판단 필요'
+                  }"
                 >
                   <strong>{{ p.name }}</strong> → {{ p.recommendation }}
                   <br />
@@ -90,7 +95,6 @@
             아직 AI 판단 결과가 없습니다.
           </div>
 
-          <!-- AI 자동 적용 -->
           <div class="ai-apply-box">
             <h4>AI 추천 자동 적용</h4>
             <button class="btn ai-apply-btn" @click="applyAIResults">
@@ -101,7 +105,7 @@
       </div>
     </div>
 
-    <!-- ✅ 반려 사유 모달 -->
+    <!-- 반려 사유 모달 -->
     <div v-if="showRejectModal" class="modal-overlay">
       <div class="modal">
         <h3>반려 사유 입력</h3>
@@ -133,45 +137,52 @@ export default {
       aiIcon,
     };
   },
+
   async created() {
     await this.loadVacations();
     await this.loadAIPredictions();
   },
 
   computed: {
-  aiRecommendationMap() {
-    const map = {};
-
-    if (Array.isArray(this.aiResults)) {
-      for (const teamResult of this.aiResults) {
-        // 🔥 priority가 배열인지 반드시 체크
-        if (!Array.isArray(teamResult.priority)) continue;
-
-        for (const p of teamResult.priority) {
-          if (!p || !p.name) continue;
-          map[p.name] = p.recommendation;
+    /* AI 추천 매핑 (name+기간 → recommendation) */
+    aiRecommendationMap() {
+      const map = {};
+      if (Array.isArray(this.aiResults)) {
+        for (const teamResult of this.aiResults) {
+          if (!Array.isArray(teamResult.priority)) continue;
+          for (const p of teamResult.priority) {
+            const key = `${p.name}_${p.startDate}_${p.endDate}`;
+            map[key] = p.recommendation;
+          }
         }
       }
-    }
+      return map;
+    },
 
-    return map;
+    /* 🔥 우선순위 정렬된 연차 리스트 */
+    computedVacations() {
+      return this.vacations.slice().sort((a, b) => {
+        const keyA = `${a.user?.name}_${a.startDate}_${a.endDate}`;
+        const keyB = `${b.user?.name}_${b.startDate}_${b.endDate}`;
+        const aRec = this.aiRecommendationMap[keyA] || "기타";
+        const bRec = this.aiRecommendationMap[keyB] || "기타";
+        const order = { "반려": 0, "팀장 판단 필요": 1, "승인": 2, "기타": 3 };
+        return order[aRec] - order[bRec];
+      });
+    },
   },
-},
 
   methods: {
-    /* 테이블 행 색상 설정 */
     getRowClass(vac) {
       if (vac.status !== "대기") return "";
-
-      const rec = this.aiRecommendationMap[vac.user?.name];
-
+      const key = `${vac.user?.name}_${vac.startDate}_${vac.endDate}`;
+      const rec = this.aiRecommendationMap[key];
       if (rec === "승인") return "ai-row-approve";
       if (rec === "반려") return "ai-row-reject";
-
+      if (rec === "팀장 판단 필요") return "ai-row-manager-review";
       return "";
     },
 
-    /* 연차 데이터 불러오기 */
     async loadVacations() {
       try {
         const res = await this.$axios.get("http://localhost:3000/api/manager/vacations", {
@@ -179,11 +190,10 @@ export default {
         });
         if (res.data.success) this.vacations = res.data.vacations;
       } catch (err) {
-        console.error("연차 목록 불러오기 오류:", err);
+        console.error("연차 목록 오류:", err);
       }
     },
 
-    /* AI 판단 데이터 가져오기 */
     async loadAIPredictions() {
       try {
         const today = new Date().toISOString().split("T")[0];
@@ -192,7 +202,6 @@ export default {
           { targetDate: today },
           { withCredentials: true }
         );
-
         if (res.data.results) {
           this.aiResults = Array.isArray(res.data.results)
             ? res.data.results
@@ -205,7 +214,6 @@ export default {
 
     async updateStatus(vacationId, status) {
       if (!confirm(`해당 연차를 ${status}하시겠습니까?`)) return;
-
       try {
         const res = await this.$axios.post(
           `http://localhost:3000/api/manager/vacations/${vacationId}/status`,
@@ -248,39 +256,39 @@ export default {
           this.loadVacations();
         }
       } catch (err) {
-        console.error("반려 처리 오류:", err);
+        console.error("반려 오류:", err);
       }
     },
 
-    /* AI 추천 자동 적용 */
     async applyAIResults() {
       try {
         const payload = [];
-
         for (const teamResult of this.aiResults) {
           for (const p of teamResult.priority) {
-            const target = this.vacations.find(v => v.user?.name === p.name);
+            const target = this.vacations.find(
+              v =>
+                v.user?.name === p.name &&
+                v.startDate === p.startDate &&
+                v.endDate === p.endDate
+            );
             if (target) {
               payload.push({
-                vacationId: target.vacation_id,
-                recommendation: p.recommendation,
-                reason: p.reason,
+                name: p.name,
+  vacationId: target ? target.vacation_id : null,
+  recommendation: p.recommendation,
+  reason: p.reason,
               });
             }
           }
         }
-
         const res = await this.$axios.post(
           "http://localhost:3000/api/manager/vacations/ai-apply",
           { aiResults: payload },
           { withCredentials: true }
         );
-
         if (res.data.success) {
           alert("AI 추천이 적용되었습니다!");
           this.loadVacations();
-        } else {
-          alert(res.data.message || "AI 적용 실패");
         }
       } catch (err) {
         console.error(err);
@@ -292,30 +300,24 @@ export default {
 </script>
 
 <style scoped>
-/* 행 색상 */
+/* 하이라이트 색상 */
 .ai-row-approve {
   background-color: #e9f7ee !important;
 }
-
 .ai-row-reject {
   background-color: #fdecec !important;
 }
+.ai-row-manager-review {
+  background-color: #fef3c7 !important; /* 노란색 */
+}
 
-/* 나머지 CSS 동일 */
+/* 레이아웃 */
 .layout-container {
   display: flex;
   gap: 2rem;
   width: 100%;
   justify-content: center;
 }
-
-.layout-container {
-  display: flex;
-  gap: 2rem;
-  width: 100%;
-  justify-content: center;
-}
-
 .table-card {
   flex: 2;
   background: white;
@@ -324,8 +326,6 @@ export default {
   padding: 2rem;
   max-width: 900px;
 }
-
-/* ✅ 오른쪽 AI 패널 */
 .ai-panel {
   flex: 1;
   background: #ffffff;
@@ -334,42 +334,34 @@ export default {
   padding: 1.5rem;
   height: fit-content;
 }
-
-.ai-panel h3 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: #1f2937;
-}
-
 .ai-result-card {
   border-top: 1px solid #e5e7eb;
   padding-top: 1rem;
   margin-top: 1rem;
 }
-
 .ai-approve {
   color: #16a34a;
   font-weight: 600;
 }
-
 .ai-reject {
   color: #dc2626;
   font-weight: 600;
 }
-
+.ai-manager-review {
+  color: #b45309; /* 진한 노랑 */
+  font-weight: 600;
+}
 .ai-comment {
   margin-top: 0.5rem;
   font-style: italic;
   color: #6b7280;
 }
-
 .ai-empty {
   color: #9ca3af;
   font-size: 0.9rem;
   text-align: center;
   padding: 2rem 0;
 }
-
 .manager-vacation-page {
   min-height: 100vh;
   background-color: #f9fafb;
@@ -377,7 +369,6 @@ export default {
   flex-direction: row;
   font-family: "Pretendard", "Noto Sans KR", sans-serif;
 }
-
 .content {
   flex: 1;
   padding: 3rem 2rem;
@@ -385,103 +376,37 @@ export default {
   flex-direction: column;
   align-items: center;
 }
-
 .header {
   text-align: center;
   margin-bottom: 2rem;
 }
-
 .header h1 {
   font-size: 2rem;
   color: #1f2937;
   font-weight: 700;
 }
-
-.header p {
-  color: #6b7280;
-  margin-top: 0.5rem;
-}
-
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
-
-th,
-td {
+th, td {
   padding: 0.75rem;
   border: 1px solid #e5e7eb;
   text-align: left;
 }
-
-th {
-  background-color: #f3f4f6;
-  font-weight: 600;
-}
-
-tr:hover {
-  background-color: #f9fafb;
-}
-
-/* 버튼 스타일 */
+.status.대기 { color: #ca8a04; }
+.status.승인 { color: #16a34a; }
+.status.반려 { color: #dc2626; }
 .btn {
   padding: 0.4rem 0.8rem;
   border: none;
   border-radius: 0.4rem;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: 0.2s;
 }
-
-.btn.approve {
-  background-color: #16a34a;
-  color: white;
-}
-
-.btn.approve:hover {
-  background-color: #15803d;
-}
-
-.btn.reject {
-  background-color: #dc2626;
-  color: white;
-  margin-left: 0.4rem;
-}
-
-.btn.reject:hover {
-  background-color: #b91c1c;
-}
-
-.btn.cancel {
-  background-color: #9ca3af;
-  color: white;
-}
-
-.btn.cancel:hover {
-  background-color: #6b7280;
-}
-
-.processed {
-  color: #6b7280;
-  font-style: italic;
-}
-
-/* 상태 색상 */
-.status {
-  font-weight: 600;
-}
-.status.대기 {
-  color: #ca8a04;
-}
-.status.승인 {
-  color: #16a34a;
-}
-.status.반려 {
-  color: #dc2626;
-}
-
-/* ✅ 반려 사유 모달 */
+.btn.approve { background-color: #16a34a; color: white; }
+.btn.reject { background-color: #dc2626; color: white; }
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -490,43 +415,12 @@ tr:hover {
   justify-content: center;
   align-items: center;
 }
-
 .modal {
   background: white;
   padding: 1.5rem;
   border-radius: 0.75rem;
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.modal h3 {
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  color: #111827;
-}
-
-textarea {
-  width: 100%;
-  height: 100px;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  resize: none;
-  font-family: inherit;
-}
-
-.modal-actions {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.rejection-reason {
-  color: #6b7280;
-  font-size: 0.85rem;
-  font-style: italic;
 }
 .ai-icon {
   width: 40px;
@@ -536,5 +430,3 @@ textarea {
 }
 
 </style>
-
-

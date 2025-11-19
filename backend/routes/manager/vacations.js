@@ -89,13 +89,11 @@ router.post("/:vacationId/status", async (req, res) => {
 
 
 // =============================
-// 3) AI 추천 자동 적용
+// 3) AI 추천 자동 적용 (팀장 판단 항목 제외)
 // =============================
 router.post("/ai-apply", async (req, res) => {
   try {
-    const { aiResults, rawAI } = req.body;  
-    // Vue에서 AI 원문도 같이 보내도록 구성하면 완벽해짐
-    // rawAI.priority 안에 진짜 reason이 존재
+    const { aiResults } = req.body;
 
     if (!aiResults || aiResults.length === 0) {
       return res.json({
@@ -105,38 +103,66 @@ router.post("/ai-apply", async (req, res) => {
     }
 
     for (const item of aiResults) {
-      const vacationId = item.vacationId;
-      const recommendation = item.recommendation;
-      let reason = item.reason || null;
+      const { name, vacationId, recommendation, reason } = item;
 
-      // 🔥 reason이 비어있다면 AI 원본에서 찾아 자동 매핑
-      if (!reason && rawAI?.priority) {
-        const found = rawAI.priority.find(p => p.name === item.name);
-        if (found && found.reason) {
-          reason = found.reason;  // ⬅ AI 원문 reason 복구 성공
-        }
+      // 🔥 1) 팀장 판단 필요 → 자동 적용 제외
+      if (recommendation === "팀장 판단 필요") continue;
+
+      // 🔥 2) 사유에 팀장 판단 필요 관련 문구 포함 시 제외
+      const skipKeywords = ["팀장 판단"];
+      const reasonText = (reason || "").toLowerCase();
+
+      const shouldSkip = skipKeywords.some(keyword =>
+        reasonText.includes(keyword.toLowerCase())
+      );
+
+      if (shouldSkip) continue;
+
+      // 🔥 3) vacationId로 조회 시도
+      let vacation = null;
+      if (vacationId) {
+        vacation = await Vacation.findByPk(vacationId);
       }
 
+      // 🔥 4) 없으면 이름 기반 최신 대기 연차 조회
+      if (!vacation) {
+        vacation = await Vacation.findOne({
+          include: [
+            {
+              model: User,
+              as: "user",
+              where: { name },
+              attributes: []
+            }
+          ],
+          where: { status: "대기" },
+          order: [["createdAt", "DESC"]]
+        });
+      }
+
+      if (!vacation) continue; // 못찾으면 스킵
+
+      // 🔥 5) 추천 반영
       const updateData = { status: recommendation };
 
       if (recommendation === "반려") {
         updateData.rejection_reason = reason || "사유 없음";
       }
 
-      await Vacation.update(updateData, {
-        where: { vacation_id: vacationId }
-      });
+      await vacation.update(updateData);
     }
 
     res.json({
       success: true,
-      message: "AI 추천을 연차 승인/반려에 적용했습니다."
+      message: "AI 추천을 연차 승인/반려에 적용했습니다. (팀장 판단 항목 제외)"
     });
   } catch (error) {
     console.error("[AI 자동 적용 error]", error);
     res.status(500).json({ success: false, message: "서버 오류" });
   }
 });
+
+
 
 
 
