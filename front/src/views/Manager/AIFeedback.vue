@@ -94,12 +94,6 @@
 </ul>
 
 
-           <div class="summary">
-    <p>AI 추천 점수: <b>{{ result.recommended_score }}</b></p>
-    <p>예상 등급: <b>{{ result.recommended_grade }}</b></p>
-  </div>
-
-  <hr />
 
   <!-- 총평 -->
   <div class="summary">

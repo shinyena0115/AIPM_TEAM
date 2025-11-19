@@ -2,7 +2,7 @@ var express = require("express");
 var router = express.Router();
 var OpenAI = require("openai");
 var openaiClient = new OpenAI();
-
+const { Op } = require("sequelize");
 const { User, Team, Task, Vacation, Attendance, PeerReview } = global;
 
 // -------------------------------------------------------------
@@ -107,6 +107,21 @@ router.post("/analyze-performance", async (req, res) => {
     if (!canRequestEvaluator(sessionUser, targetUserId)) {
       return res.status(403).json({ success: false, error: "권한 없음" });
     }
+   // -------------------------------------------------------------
+   // 📌 여기 추가!!! (기간 파라미터 필수)
+   // -------------------------------------------------------------
+    
+    const start = req.body.start || req.body.periodStart;
+    const end = req.body.end || req.body.periodEnd;
+    if (!start || !end) {
+      return res.json({
+      success: false,
+      error: "start, end(기간)이 필요합니다.",
+    });
+    }
+
+    const periodStart = new Date(start);
+    const periodEnd = new Date(end);
 
     // -------------------------------------------------------------
     // 1) 사용자 + 팀 정보
@@ -126,12 +141,48 @@ router.post("/analyze-performance", async (req, res) => {
     // -------------------------------------------------------------
     // 2) 데이터 로딩
     // -------------------------------------------------------------
-    const tasks = await Task.findAll({ where: { user_id: targetUserId } });
-    const vacations = await Vacation.findAll({ where: { user_id: targetUserId } });
-    const attendances = await Attendance.findAll({ where: { user_id: targetUserId } });
+    const tasks = await Task.findAll({
+  where: {
+    user_id: targetUserId,
+    deadline: {
+      [Op.between]: [periodStart, periodEnd]
+    }
+  }
+});
+    const vacations = await Vacation.findAll({
+  where: {
+    user_id: targetUserId,
+    [Op.or]: [
+      {
+        startDate: { [Op.between]: [periodStart, periodEnd] }
+      },
+      {
+        endDate: { [Op.between]: [periodStart, periodEnd] }
+      },
+      {
+        startDate: { [Op.lte]: periodStart },
+        endDate: { [Op.gte]: periodEnd }
+      }
+    ]
+  }
+});
+
+    const attendances = await Attendance.findAll({
+  where: {
+    user_id: targetUserId,
+    date: {
+      [Op.between]: [periodStart, periodEnd]
+    }
+  }
+});
     const peerReviews = await PeerReview.findAll({
-      where: { reviewee_id: targetUserId },
-    });
+  where: {
+    reviewee_id: targetUserId,
+    createdAt: {
+      [Op.between]: [periodStart, periodEnd]
+    }
+  }
+});
 
 // -------------------------------------------------------------
 // 🔥 2-1) Attendance 상세 분석 (출퇴근 자동 판정 활용) — 최종 안정 버전
@@ -202,7 +253,14 @@ vacations.forEach(v => {
     let teamAttendanceCounts = [];
 
     for (const tm of teamMembers) {
-      const tmTasksAll = await Task.findAll({ where: { user_id: tm.user_id } });
+      const tmTasksAll = await Task.findAll({
+  where: {
+    user_id: tm.user_id,
+    deadline: {
+      [Op.between]: [periodStart, periodEnd]
+    }
+  }
+});
 
       const total = tmTasksAll.length;
       const completed = tmTasksAll.filter(t => t.completed).length;
@@ -331,14 +389,19 @@ vacations.forEach(v => {
     else if (finalScore >= 60) recommendedGrade = "C";
     else recommendedGrade = "D";
 
-    // -------------------------------------------------------------
-// 7) AI 프롬프트 (강점/약점/조언만)
+  // -------------------------------------------------------------
+// 7) AI 프롬프트 (팀장 스타일 + HR 검토용 평가 코멘트)
 // -------------------------------------------------------------
 const prompt = `
-당신은 HR 인사평가 전문가입니다.
+당신은 실제 팀장이며 동시에 HR 인사평가 전문가입니다.
 
 ⚠ 절대 점수/등급을 재계산하지 마세요.
 서버에서 계산된 recommended_score와 recommended_grade를 그대로 사용하세요.
+
+목표:
+팀장이 팀원에게 주는 자연스러운 평가 코멘트를 생성하되,
+상위 관리자(HR/본부장)도 검토 가능한 객관적인 문체로 작성하세요.
+강점과 약점은 반드시 '정량지표' 또는 '동료평가' 기반으로 구체적 이유를 포함하세요.
 
 === 사전 계산된 평가 결과 ===
 recommended_score: ${finalScore}
@@ -358,21 +421,32 @@ recommended_grade: ${recommendedGrade}
 커뮤니케이션: ${communicationAvg.toFixed(1)}
 책임감: ${responsibilityAvg.toFixed(1)}
 평균: ${peerAvg.toFixed(1)}
-개수: ${peerCount}
+평가 개수: ${peerCount}
 
 === 팀 내 퍼센타일 ===
-업무완료율: ${taskPercentile}
-마감준수율: ${deadlinePercentile}
-출근수: ${attendancePercentile}
+업무완료율: ${taskPercentile}%
+마감준수율: ${deadlinePercentile}%
+출근수: ${attendancePercentile}%
+
+작성 규칙:
+- 모든 코멘트는 "팀장이 팀원에게 피드백하는 톤"으로 작성하세요.
+- 공격적 표현, 감정적 표현, 확정적 비난은 절대 금지.
+- 강점은 3~5개, 약점은 2~3개 작성하세요.
+- recommended_actions는 구체적 행동 가이드를 3개 생성하세요.
+- evidence는 "정량 기반 분석을 한 문장"으로 작성하세요.
+- final_comment는 3~4문장 길이의 해당 팀원의 총평으로 작성하세요.
+- JSON 이외의 문장은 절대 출력하지 마세요.
 
 JSON 형식으로 다음을 생성하세요:
-- overall_score
-- performance_grade
-- strengths: []
-- weaknesses: []
-- recommended_actions: []
-- evidence: "정량 기반 근거"
-- final_comment: "총평"
+{
+  "overall_score": number,
+  "performance_grade": string,
+  "strengths": [],
+  "weaknesses": [],
+  "recommended_actions": [],
+  "evidence": "",
+  "final_comment": ""
+}
 `;
 
 // 🔽🔥 프롬프트 로그 출력

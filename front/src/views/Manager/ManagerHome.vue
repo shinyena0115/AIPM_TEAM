@@ -46,7 +46,7 @@
           </div>
         </div>
 
-        <div class="feature-card" @click="goTo('/manager/reports')">
+        <div class="feature-card" @click="goTo('/manager/ai-feedback')">
           <h3>리포트 요약</h3>
           <div class="feature-desc">
             <p>AI가 자동으로 생성한 업무 리포트를</p>
