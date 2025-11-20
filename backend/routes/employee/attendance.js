@@ -49,6 +49,22 @@ router.post("/checkin", async (req, res) => {
       status, // 출근 상태 저장
     });
 
+    // ✅ 출근 시 연차 상태 자동 복귀 처리
+    const user = await User.findByPk(user_id);
+    if (user && user.vacation_status === "연차중") {
+      // 연차 종료일이 지났거나 오늘이 연차 종료일 이후면 '근무중'으로 복귀
+      if (!user.current_vacation_end || today > user.current_vacation_end) {
+        await User.update(
+          {
+            vacation_status: "근무중",
+            current_vacation_start: null,
+            current_vacation_end: null,
+          },
+          { where: { user_id } }
+        );
+      }
+    }
+
     res.status(200).json({ message: "출근 기록 완료", attendance: newAttendance });
   } catch (err) {
     console.error("❌ 출근 오류:", err);

@@ -80,6 +80,34 @@ router.post("/:vacationId/status", async (req, res) => {
     }
     await vacation.save();
 
+    // ✅ 연차 승인 시 사용자 vacation_status 자동 업데이트
+    if (status === "승인") {
+      const today = new Date().toISOString().split('T')[0];
+      const vacationStart = vacation.startDate;
+      const vacationEnd = vacation.endDate;
+
+      // 오늘이 연차 기간 내에 있으면 즉시 '연차중'으로 설정
+      if (today >= vacationStart && today <= vacationEnd) {
+        await User.update(
+          {
+            vacation_status: "연차중",
+            current_vacation_start: vacationStart,
+            current_vacation_end: vacationEnd,
+          },
+          { where: { user_id: vacation.user_id } }
+        );
+      } else if (today < vacationStart) {
+        // 미래 연차인 경우 날짜 정보만 저장 (크론 작업이나 출근 체크에서 자동 전환)
+        await User.update(
+          {
+            current_vacation_start: vacationStart,
+            current_vacation_end: vacationEnd,
+          },
+          { where: { user_id: vacation.user_id } }
+        );
+      }
+    }
+
     res.json({ success: true, message: `연차가 ${status} 처리되었습니다.` });
   } catch (err) {
     console.error("❌ 연차 상태 변경 오류:", err);
@@ -150,6 +178,34 @@ router.post("/ai-apply", async (req, res) => {
       }
 
       await vacation.update(updateData);
+
+      // ✅ 연차 승인 시 사용자 vacation_status 자동 업데이트
+      if (recommendation === "승인") {
+        const today = new Date().toISOString().split('T')[0];
+        const vacationStart = vacation.startDate;
+        const vacationEnd = vacation.endDate;
+
+        // 오늘이 연차 기간 내에 있으면 즉시 '연차중'으로 설정
+        if (today >= vacationStart && today <= vacationEnd) {
+          await User.update(
+            {
+              vacation_status: "연차중",
+              current_vacation_start: vacationStart,
+              current_vacation_end: vacationEnd,
+            },
+            { where: { user_id: vacation.user_id } }
+          );
+        } else if (today < vacationStart) {
+          // 미래 연차인 경우 날짜 정보만 저장
+          await User.update(
+            {
+              current_vacation_start: vacationStart,
+              current_vacation_end: vacationEnd,
+            },
+            { where: { user_id: vacation.user_id } }
+          );
+        }
+      }
     }
 
     res.json({
