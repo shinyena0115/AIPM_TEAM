@@ -30,20 +30,6 @@
           리포트 요약
         </li>
 
-        <li
-          @click="$router.push('/manager/calendar')"
-          :class="{ active: isActive('/manager/calendar') }"
-        >
-          팀 캘린더
-        </li>
-
-        <li
-          @click="$router.push('/manager/settings')"
-          :class="{ active: isActive('/manager/settings') }"
-        >
-          설정
-        </li>
-
         
       </ul>
     </nav>

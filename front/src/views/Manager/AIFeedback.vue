@@ -1,6 +1,20 @@
 <template>
   <div class="feedback-layout">
-    <ManagerSidebar />
+
+    <!-- 🔹 1) 고정 헤더 -->
+    <ManagerHeader class="header-fixed"
+                   @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+
+    <div class="layout-body">
+
+      <!-- 🔹 2) 헤더 아래 사이드바 -->
+      <ManagerSidebar
+  v-if="sidebarOpen"
+  class="manager-sidebar-fixed"
+/>
+
+      <!-- 🔹 3) 콘텐츠 전체 감싸는 page-wrapper -->
+      <div class="page-wrapper" :class="{ 'sidebar-hidden': !sidebarOpen }">
 
     <main class="content-area">
       <div class="ai-feedback-page">
@@ -130,26 +144,25 @@
       {{ a }}
     </li>
   </ul>
+  </div><!-- result-card -->
 
+          </div><!-- ai-feedback-page -->
+        </main>
 
-</div>
-
-
-   
-
-      </div>
-    </main>
+      </div><!-- page-wrapper -->
+    </div><!-- layout-body -->
   </div>
 </template>
 
 <script>
 import axios from "axios";
 import ManagerSidebar from "@/components/ManagerSidebar.vue";
+import ManagerHeader from "@/components/ManagerHeader.vue";
 
 export default {
   name: "AIFeedback",
 
-  components: { ManagerSidebar },
+  components: { ManagerSidebar, ManagerHeader },
 
   data() {
     return {
@@ -161,6 +174,7 @@ export default {
       loading: false,
       error: "",
       result: null,
+      sidebarOpen: true,
     };
   },
 
@@ -210,12 +224,61 @@ export default {
 </script>
 
 <style scoped>
-/* 전체 레이아웃 */
-.feedback-layout {
+.manager-layout {
   display: flex;
-  height: 100vh;
-  background: #f5f7fa;
-  font-family: "Inter", "Pretendard", sans-serif;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 🔥 최상단 고정 헤더 */
+.header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+}
+
+/* 🔥 헤더 아래 본문 전체 */
+.layout-body {
+  margin-top:  60px; /* 헤더 높이만큼 내려줌 */
+  display: flex;
+}
+
+/* 🔥 페이지 전체 래퍼 (사이드바 포함) */
+.page-wrapper {
+  display: flex;
+  width: 100%;
+  transition: margin-left 0.3s ease;
+}
+
+/* 🔥 너의 기존 ManagerSidebar 기본 width가 220px이라고 가정 */
+.page-wrapper {
+  margin-left: 240px;   /* 사이드바 width와 동일하게 */
+  transition: margin-left 0.3s ease;
+  width: 100%;
+}
+/* 🔥 사이드바 고정 */
+.manager-sidebar-fixed {
+  position: fixed;
+  top: 60px; /* 헤더 아래 */
+  left: 0;
+  width: 240px;  /* 너가 사용하는 사이드바 width에 맞추기 */
+  height: calc(100vh - 60px);
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  z-index: 150;
+}
+
+/* 사이드바 숨김 */
+.page-wrapper.sidebar-hidden {
+  margin-left: 0;
 }
 
 /* 메인 컨텐츠 영역 */
