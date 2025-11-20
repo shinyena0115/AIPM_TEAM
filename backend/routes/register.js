@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
     // 비밀번호 해싱
      //const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 신규 사용자 생성 (기본 status: pending)
+    // 신규 사용자 생성 (기본 status: active)
     const newUser = await User.create({
       name,
       email,
@@ -58,7 +58,7 @@ router.post("/", async (req, res) => {
       department_id: department_id || null,
       team_id: team_id || null,
       role: "Employee",
-      status: "pending",
+      status: "active",
     });
 
     res.json({ success: true, message: "회원가입 신청 완료", userId: newUser.user_id });

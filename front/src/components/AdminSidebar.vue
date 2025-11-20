@@ -1,7 +1,5 @@
 <template>
-  <aside class="sidebar">
-    <div class="logo">AIPM Admin</div>
-
+  <aside :class="['sidebar', { collapsed: !sidebarOpen }]">
     <nav class="menu">
       <ul>
         <li
@@ -25,27 +23,6 @@
           사원 관리
         </li>
 
-        <li
-          @click="$router.push('/admin/approvals')"
-          :class="{ active: isActive('/admin/approvals') }"
-        >
-          결재 관리
-        </li>
-
-        <li
-          @click="$router.push('/admin/reports')"
-          :class="{ active: isActive('/admin/reports') }"
-        >
-          리포트
-        </li>
-
-        <li
-          @click="$router.push('/admin/settings')"
-          :class="{ active: isActive('/admin/settings') }"
-        >
-          설정
-        </li>
-
         
       </ul>
     </nav>
@@ -55,6 +32,12 @@
 <script>
 export default {
   name: "AdminSidebar",
+  props: {
+    sidebarOpen: {
+      type: Boolean,
+      default: true,
+    },
+  },
   methods: {
     isActive(path) {
       return this.$route.path === path;
@@ -64,7 +47,7 @@ export default {
 </script>
 
 <style scoped>
-/* ===== 사이드바 기본 구조 ===== */
+/* ===== 사이드바 기본 ===== */
 .sidebar {
   width: 220px;
   background: #fff;
@@ -73,16 +56,21 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
+
+  position: fixed;
+  top: 60px;
+  left: 0;
+  z-index: 150;
+
+  transition: transform 0.25s ease;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-  color: #111827;
+/* ← 접힌 상태 */
+.sidebar.collapsed {
+  transform: translateX(-220px);
 }
 
-/* ===== 메뉴 스타일 ===== */
+/* ===== 메뉴 ===== */
 .menu ul {
   list-style: none;
   padding: 0;
@@ -97,7 +85,7 @@ export default {
   font-weight: 500;
 }
 
-/* 🔴 관리자 전용 색상 적용 */
+/* 🔴 관리자 전용 색상 */
 .menu li.active {
   color: #eb3f25;
   font-weight: 600;
@@ -117,10 +105,9 @@ export default {
 @media (max-width: 1024px) {
   .sidebar {
     width: 180px;
-    padding: 16px;
   }
-  .logo {
-    font-size: 16px;
+  .sidebar.collapsed {
+    transform: translateX(-180px);
   }
   .menu li {
     font-size: 14px;

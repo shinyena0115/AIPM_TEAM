@@ -5,7 +5,10 @@
     <ManagerHeader class="header-fixed" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
     <div class="layout-body">      <!-- 🔥 추가 -->
-        <ManagerSidebar v-if="sidebarOpen" />
+        <ManagerSidebar
+  v-if="sidebarOpen"
+  class="manager-sidebar-fixed"
+/>
 
       <!-- 🔥 기존 전체 내용 감싸기 -->
       <div class="page-wrapper" :class="{ 'sidebar-hidden': !sidebarOpen }">
@@ -352,7 +355,21 @@ export default {
 
 /* 🔥 너의 기존 ManagerSidebar 기본 width가 220px이라고 가정 */
 .page-wrapper {
-  margin-left: 240pxpx;
+  margin-left: 240px;   /* 사이드바 width와 동일하게 */
+  transition: margin-left 0.3s ease;
+  width: 100%;
+}
+/* 🔥 사이드바 고정 */
+.manager-sidebar-fixed {
+  position: fixed;
+  top: 60px; /* 헤더 아래 */
+  left: 0;
+  width: 240px;  /* 너가 사용하는 사이드바 width에 맞추기 */
+  height: calc(100vh - 60px);
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  z-index: 150;
 }
 
 /* 사이드바 숨김 */
