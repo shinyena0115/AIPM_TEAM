@@ -90,6 +90,7 @@ var managerVacations = require("./routes/manager/vacations");
 var employeeTasksRouter = require("./routes/employee/tasks");
 // employee calendar 라우터
 var employeeCalendarRouter = require("./routes/employee/calendar");
+var vacationNoticeRouter = require("./routes/employee/VacationNotice");
 // AI 분석용 라우터
 var aiTaskRouter = require("./routes/api/apiTask");
 var aiVacationRouter = require("./routes/api/apiVacation");
@@ -127,6 +128,7 @@ app.use("/api/register", registerRouter);
 app.use("/admin/users", userManageRouter);
 app.use("/api/vacations", vacationRouter);
 app.use("/api/manager/vacations", managerVacations);
+app.use("/api/vacation-notice", vacationNoticeRouter);
 
 app.use("/api/ai", aiTaskRouter);        // AI 분석용
 app.use("/api/tasks", employeeTasksRouter);

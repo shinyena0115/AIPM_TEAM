@@ -1,4 +1,4 @@
-\<template>
+<template>
   <div class="employee-layout">
     <!-- ✅ 상단 고정 헤더 -->
     <EmployeeHeader class="header-fixed" @toggle-sidebar="toggleSidebar" />
