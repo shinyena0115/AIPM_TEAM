@@ -149,6 +149,8 @@ function define(connection) {
                 allowNull: true,
                 comment: "매니저가 반려할 때 입력한 사유",
             },
+            ai_comment: { type: DataTypes.STRING(255), allowNull: true, comment: "AI 판단 코멘트" }
+
         },
         {
             indexes: [], // 자동 인덱스 생성 완전히 비활성화
@@ -176,6 +178,11 @@ function define(connection) {
             type: DataTypes.TIME,
             allowNull: true,
         },
+         // 🆕 출퇴근 상태 컬럼
+    status: {
+        type: DataTypes.STRING, // "정상", "지각", "조퇴", "야근"
+        allowNull: true,
+    },
         createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
         updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     });

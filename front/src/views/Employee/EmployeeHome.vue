@@ -111,16 +111,16 @@ export default {
 
 .content-area {
   display: flex;
-  margin-top: 64px;
-  min-height: calc(100vh - 64px);
+  margin-top: 60px;
+  min-height: calc(100vh - 60px);
 }
 
 .sidebar {
   position: fixed;
-  top: 64px;
+  top: 60px;
   left: 0;
   width: 240px;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 60px);
   background-color: #fff;
   border-right: 1px solid #e5e7eb;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
@@ -149,8 +149,8 @@ export default {
   flex-shrink: 0;
   overflow-y: auto;
   position: sticky;
-  top: 64px;
-  height: calc(100vh - 64px);
+  top: 60px;
+  height: calc(100vh - 60px);
 }
 
 /* ✅ 인사말 */

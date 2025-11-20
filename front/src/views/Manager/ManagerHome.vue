@@ -1,28 +1,17 @@
 <template>
-  <div class="dashboard-container">
-    <!-- ✅ 왼쪽 사이드바 (컴포넌트로 교체) -->
-    <ManagerSidebar />
+  <div class="manager-layout">
+    <!-- ✅ 상단 고정 헤더 -->
+    <ManagerHeader class="header-fixed" @toggle-sidebar="toggleSidebar" />
 
-    <!-- 메인 -->
-    <main class="main">
-      <header class="main-header">
-        <input type="text" placeholder="Search for team, tasks, reports..." />
+    <!-- 전체 영역 -->
+    <div class="content-area">
+      
+      <!-- ✅ 왼쪽 사이드바 -->
+      <ManagerSidebar v-show="showSidebar" class="sidebar" />
 
-        <!-- 🔹 상단 프로필 -->
-        <div class="profile">
-          <div class="avatar-wrapper" @click="toggleDropdown">
-            <img :src="managerIcon" alt="avatar" class="avatar" />
-            <div v-if="showDropdown" class="dropdown">
-              <p class="name">{{ currentUser?.name }}</p>
-              <p class="email">{{ currentUser?.email }}</p>
-              <hr />
-              <button class="logout" @click="logout">로그아웃</button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <!-- 인사말 -->
+      <!-- 메인 -->
+      <main class="main-content" :class="{ 'sidebar-hidden': !showSidebar }">
+        <!-- 인사말 -->
       <div class="welcome">
         <h1>{{ currentUser?.name }} 매니저님, 안녕하세요!</h1>
         <p>오늘 팀의 진행 상황을 확인해보세요.</p>
@@ -46,7 +35,7 @@
           </div>
         </div>
 
-        <div class="feature-card" @click="goTo('/manager/reports')">
+        <div class="feature-card" @click="goTo('/manager/ai-feedback')">
           <h3>리포트 요약</h3>
           <div class="feature-desc">
             <p>AI가 자동으로 생성한 업무 리포트를</p>
@@ -56,170 +45,118 @@
       </div>
     </main>
 
-    <!-- 오른쪽 사이드바 -->
-    <aside class="sidebar-right">
-      <div class="calendar">
-        <h3>Team Calendar</h3>
-        <ManagerCalendarComponent />
-      </div>
+      <!-- 오른쪽 사이드 패널 -->
+      <aside class="sidebar-right">
+        <div class="calendar">
+          <h3>📅 Team Calendar</h3>
+          <ManagerCalendarComponent />
+        </div>
 
-      <div class="events">
-        <h3>Pending Approvals</h3>
-        <div class="event blue">김현우 – 연차 요청</div>
-        <div class="event green">신규 프로젝트 보고서 검토</div>
-      </div>
-    </aside>
+        <div class="events">
+          <h3>Pending</h3>
+          <p class="event blue">김현우 – 연차 요청</p>
+          <p class="event green">신규 프로젝트 보고서</p>
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script>
-import managerProfileIcon from "@/assets/manager_profile_icon.png";
-import ManagerCalendarComponent from "@/components/ManagerCalendarComponent.vue";
+import ManagerHeader from "@/components/ManagerHeader.vue";
 import ManagerSidebar from "@/components/ManagerSidebar.vue";
+import ManagerCalendarComponent from "@/components/ManagerCalendarComponent.vue";
 
 export default {
   name: "ManagerHome",
-  components: {
-    ManagerCalendarComponent,
-    ManagerSidebar,
-  },
+  components: { ManagerHeader, ManagerSidebar, ManagerCalendarComponent },
   data() {
     return {
       currentUser: null,
-      showDropdown: false,
-      managerIcon: managerProfileIcon,
+      showSidebar: true,
     };
   },
   async created() {
     await this.loadCurrentUser();
+    if (window.innerWidth <= 1024) {
+      this.showSidebar = false;
+    }
   },
   methods: {
     async loadCurrentUser() {
       try {
-       const response = await this.$axios.get("http://localhost:3000/api/info", {
-  withCredentials: true,
-  headers: {
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
-  },
-});
+        const response = await this.$axios.get("http://localhost:3000/api/info", {
+          withCredentials: true,
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" }
+        });
+
         if (response.data.isLogin) {
           this.currentUser = response.data.user;
         } else {
           this.$router.push("/login");
         }
-      } catch (error) {
-        console.error("사용자 정보 불러오기 실패:", error);
-        this.$router.push("/login");
-      }
-    },
-    toggleDropdown() {
-      this.showDropdown = !this.showDropdown;
-    },
-    async logout() {
-      try {
-        await this.$axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
-        this.$router.push("/login");
       } catch (err) {
-        console.error("로그아웃 실패:", err);
+        console.error("사용자 정보 불러오기 실패:", err);
+        this.$router.push("/login");
       }
     },
     goTo(path) {
       this.$router.push(path);
     },
-  },
+    toggleSidebar() {
+      this.showSidebar = !this.showSidebar;
+    }
+  }
 };
 </script>
 
-
 <style scoped>
-.dashboard-container {
+.manager-layout {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   background: #f8f9fc;
-  color: #1a1a1a;
-  font-family: 'Inter', sans-serif;
 }
 
-/* 메인 영역 */
-.main {
-  flex: 1;
-  padding: 20px 30px;
-  overflow-y: auto;
-}
-
-.main-header {
+.content-area {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+  margin-top: 60px;
+  min-height: calc(100vh - 60px);
 }
 
-.main-header input {
-  width: 50%;
-  padding: 10px 15px;
-  border: 1px solid #e6e6e6;
-  border-radius: 8px;
-}
-
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 아바타 */
-.avatar-wrapper {
-  position: relative;
-  cursor: pointer;
-}
-
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-/* 드롭다운 */
-.dropdown {
-  position: absolute;
-  top: 45px;
-  right: 0;
+/* 좌측 사이드바 */
+.sidebar {
+  width: 240px;
   background: #fff;
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  padding: 10px 14px;
-  width: 180px;
-  z-index: 100;
+  border-right: 1px solid #e5e7eb;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  height: calc(100vh - 60px);
+  box-shadow: 2px 0 6px rgba(0,0,0,0.05);
 }
 
-.dropdown .name {
-  font-weight: 600;
-  margin-bottom: 4px;
+/* 메인 콘텐츠 */
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  padding: 2rem;
+  transition: 0.3s ease;
 }
 
-.dropdown .email {
-  font-size: 13px;
-  color: #666;
+.main-content.sidebar-hidden {
+  margin-left: 0;
 }
 
-.dropdown hr {
-  border: none;
-  border-top: 1px solid #eee;
-  margin: 8px 0;
+/* 오른쪽 패널 */
+.sidebar-right {
+  width: 300px;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  padding: 20px;
+  flex-shrink: 0;
 }
 
-.dropdown .logout {
-  width: 100%;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px;
-  cursor: pointer;
-}
 
 /* 인사말 */
 .welcome {
@@ -274,31 +211,12 @@ export default {
   margin: 0.25rem 0;
 }
 
-/* 오른쪽 사이드바 */
-.sidebar-right {
-  width: 300px;
-  background: #fff;
-  border-left: 1px solid #e6e6e6;
-  padding: 20px;
-}
-
-.calendar,
-.events {
-  margin-bottom: 30px;
-}
-
 .event {
-  padding: 15px;
-  border-radius: 12px;
+  padding: 12px;
+  border-radius: 10px;
   color: #fff;
   margin-bottom: 10px;
 }
-
-.event.blue {
-  background: #3b82f6;
-}
-
-.event.green {
-  background: #22c55e;
-}
+.event.blue { background: #3b82f6; }
+.event.green { background: #22c55e; }
 </style>

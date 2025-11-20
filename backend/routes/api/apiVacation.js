@@ -7,9 +7,9 @@ const { User, Vacation, Team, Task } = global;
 
 router.post("/ai-vacation-priority", async (req, res) => {
   try {
-    console.log("🧭 [AI 판단 요청] 실행됨");
+    console.log("🧭 [AI 하이브리드 판단 요청] 실행됨");
 
-    // ✅ 1️⃣ 대기 상태 연차 불러오기
+    // 1) 대기 연차 조회
     const pendingVacations = await Vacation.findAll({
       where: { status: "대기" },
       include: [
@@ -23,34 +23,72 @@ router.post("/ai-vacation-priority", async (req, res) => {
     });
 
     if (!pendingVacations.length) {
-      return res
-        .status(200)
-        .json({ message: "대기 중인 연차가 없습니다.", results: [] });
+      return res.status(200).json({ message: "대기 연차 없음", results: [] });
     }
 
-    // ✅ 2️⃣ 팀별로 묶기 + 연차 기간 내 미완료 업무 조회
+    // 2) 팀별 그룹 + 규칙 기반
     const teamGroups = {};
 
     for (const vac of pendingVacations) {
       const teamName = vac.user?.Team?.name || "미지정팀";
       const userId = vac.user?.user_id;
 
+      const startDate = new Date(vac.startDate);
+      const endDate = new Date(vac.endDate);
+
       const incompleteTasks = await Task.findAll({
         where: {
           user_id: userId,
-          completed: 0,
-          deadline: { [Op.between]: [vac.startDate, vac.endDate] },
+          [Op.or]: [
+            { completed: false },
+            { completed: 0 },
+            { completed: "0" },
+            { completed: null },
+          ],
+          deadline: {
+            [Op.between]: [
+              new Date(startDate.setHours(0, 0, 0, 0)),
+              new Date(endDate.setHours(23, 59, 59, 999)),
+            ],
+          },
         },
         attributes: ["title", "deadline", "importance", "difficulty"],
       });
+
+      let ruleBased = "승인 가능";
+
+      if (incompleteTasks.length > 0) {
+        ruleBased = "업무 미완료 - 반려 필요";
+      }
+
+      const importantTask = incompleteTasks.find(
+        (task) => task.importance === "높음"
+      );
+      if (importantTask) {
+        ruleBased = "중요 업무 - 팀장 판단 필요";
+      }
+      // ⭐ 업무 미완료 예외 처리 (긴급 의료 사유 → 팀장 판단 필요)
+if (ruleBased === "업무 미완료 - 반려 필요") {
+  const emergencyKeywords = ["병원", "진료", "응급", "수술", "고열", "의료"];
+  const reasonText = (vac.reason || "").toLowerCase();
+
+  const isEmergency = emergencyKeywords.some(k =>
+    reasonText.includes(k.toLowerCase())
+  );
+
+  if (isEmergency) {
+    ruleBased = "중요 업무 - 팀장 판단 필요";
+  }
+}
 
       if (!teamGroups[teamName]) teamGroups[teamName] = [];
 
       teamGroups[teamName].push({
         name: vac.user?.name,
         reason: vac.reason || "사유 없음",
-        startDate: vac.startDate,
-        endDate: vac.endDate,
+        ruleBased,
+        startDate: vac.startDate,     // ⭐ 추가 유지
+        endDate: vac.endDate,         // ⭐ 추가 유지
         incompleteTasks: incompleteTasks.map((t) => ({
           title: t.title,
           deadline: t.deadline,
@@ -60,123 +98,153 @@ router.post("/ai-vacation-priority", async (req, res) => {
       });
     }
 
-    // ✅ 3️⃣ 날짜 겹치는 사람만 필터링
-    const overlappingTeams = {};
-    for (const [teamName, vacations] of Object.entries(teamGroups)) {
-      const overlapping = vacations.filter((v1, i) =>
-        vacations.some(
-          (v2, j) =>
-            i !== j &&
-            !(
-              new Date(v1.endDate) < new Date(v2.startDate) ||
-              new Date(v1.startDate) > new Date(v2.endDate)
-            )
-        )
-      );
-      if (overlapping.length >= 2) overlappingTeams[teamName] = overlapping;
-    }
+    const teamsForAI = Object.entries(teamGroups).map(([team, members]) => ({
+      team,
+      members,
+    }));
 
-    // ✅ 4️⃣ 겹치는 팀 없을 경우
-    if (Object.keys(overlappingTeams).length === 0) {
-      console.log("⚠️ 겹치는 연차 없음 → AI 판단 생략");
-      return res
-        .status(200)
-        .json({ success: true, results: [], message: "겹치는 연차 없음" });
-    }
-
-    // ✅ 5️⃣ AI 프롬프트
+    // 3) AI 프롬프트 - 날짜 반드시 포함하도록 요구
     const prompt = `
-당신은 회사의 HR AI입니다.
-아래는 팀별 연차 신청 정보 및 미완료 업무(Task) 목록입니다.
-사유와 미완료 업무를 고려해 각 직원의 연차 승인 여부를 판단하세요.
+당신은 회사의 HR AI 어시스턴트입니다.
+입력된 데이터는 다음 두 가지 정보를 포함합니다:
 
-출력 형식(JSON):
-[
-  {
-    "team": "회계",
-    "priority": [
-      { "name": "김철수", "urgencyLevel": 1, "recommendation": "팀장 판단 필요", "reason": "업무 미완료 상태로 연차 신청함" },
-      { "name": "gg", "urgencyLevel": 1, "recommendation": "승인", "reason": "개인적인 휴식 목적" }
-    ],
-    "comment": "김철수는 업무 미완료로 팀장 판단 필요"
-  }
-]
+1) ruleBased: 규칙 기반 판단 결과
+2) reason: 자연어 사유
 
-팀별 연차 및 미완료 업무 데이터:
-${JSON.stringify(overlappingTeams, null, 2)}
+💡 당신의 역할:
+- 규칙 기반(ruleBased)을 1차 기준으로 삼되,
+- reason(자연어)을 분석하여 긴급도·일정 변경 가능성 등을 정교하게 판단하세요.
+- 최종 recommendation, urgencyLevel, reason을 JSON으로 출력하세요.
+
+---
+
+### 🔹 규칙 기반 우선 처리 방식
+- ruleBased = "업무 미완료 - 반려 필요" → 무조건 반려
+- ruleBased = "중요 업무 - 팀장 판단 필요" → 팀장 판단 필요 가능성 높음
+
+---
+
+### 🔹 자연어 해석 규칙 (AI 전용)
+사유(reason)를 아래 3단계로 분류:
+
+**긴급(5점)**
+- 병원, 진료, 질병, 고열, 수술
+- 장례식, 응급 상황
+- 가족 긴급 병원
+
+**보통(3점)**
+- 행정 업무, 병문안, 면접, 가족 돌봄
+
+**비긴급(1점)**
+- 여행, 개인 휴가, 여가, 놀거리
+- 단, "항공권/숙소/티켓/예약/비행기" 등 포함 시 일정 변경 불가 → 가중치 상승 (3점 처리)
+
+
+
+---
+
+### 출력(JSON)
+{
+  "teams": [
+    {
+      "team": "백엔드팀",
+      "priority": [
+        {
+          "name": "홍길동",
+          "startDate": "2025-12-03",
+          "endDate": "2025-12-04",
+          "urgencyLevel": 5,
+          "recommendation": "승인 | 반려 | 팀장 판단 필요",
+          "reason": "자연어 + 규칙 기반 종합 설명"
+        }
+      ]
+    }
+  ]
+}
+
+입력:
+${JSON.stringify(teamsForAI, null, 2)}
 `;
 
-    // ✅ 6️⃣ OpenAI 호출
+    // 4) AI 호출
     const aiResponse = await openaiClient.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "너는 공정하고 합리적으로 연차를 평가하는 HR AI야." },
+        { role: "system", content: "너는 고급 HR 판단 AI다." },
         { role: "user", content: prompt },
       ],
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "vacation_priority",
+          schema: {
+            type: "object",
+            properties: {
+              teams: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    team: { type: "string" },
+                    priority: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          startDate: { type: "string" },   // ⭐ 스키마에 추가
+                          endDate: { type: "string" },     // ⭐ 스키마에 추가
+                          urgencyLevel: { type: "number" },
+                          recommendation: { type: "string" },
+                          reason: { type: "string" },
+                        },
+                        required: [
+                          "name",
+                          "startDate",
+                          "endDate",
+                          "urgencyLevel",
+                          "recommendation",
+                          "reason",
+                        ],
+                      },
+                    },
+                  },
+                  required: ["team", "priority"],
+                },
+              },
+            },
+            required: ["teams"],
+          },
+        },
+      },
     });
 
-    let content = aiResponse.choices[0]?.message?.content || "{}";
-    console.log("🧠 AI 응답 원문:", content);
+    const raw = aiResponse.choices[0]?.message?.content || "{}";
+    const parsed = JSON.parse(raw);
 
-    // ✅ 7️⃣ JSON 파싱
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch (err) {
-      console.error("⚠️ AI 응답 파싱 실패:", err);
-      return res
-        .status(200)
-        .json({ results: [], message: "AI 응답 파싱 실패" });
-    }
+    const teams = parsed.teams || [];
 
-    // ✅ 8️⃣ 결과 정리
-    let formattedResults = Array.isArray(parsed) ? parsed : [parsed];
-
-    formattedResults = formattedResults.map((team) => {
-      const priorityList = Array.isArray(team.priority) ? team.priority : [];
-
-      // ⚙️ 팀장 판단 조건
-      const urgentCount = priorityList.filter((p) => p.urgencyLevel >= 5).length;
-      const needManagerReview = priorityList.some(
-        (p) =>
-          /비행기표|항공권|숙소|예매|티켓|업무 미완료/.test(p.reason || "")
-      );
-
-      if (urgentCount > 1 || needManagerReview) {
-        team.comment =
-          "⚠️ 일정 변경이 어렵거나 다수 긴급 사유 발생 → 팀장 판단 필요";
+    // 5) 프론트 표시용 가공
+    const finalResults = teams.map((team) => {
+      let text = `━━━━━━━━━━━━━━━━━━━\n`;
+      for (const p of team.priority) {
+        text += `👤 ${p.name}\n`;
+        text += `📅 ${p.startDate} ~ ${p.endDate}\n`;   // ⭐ 날짜 출력
+        text += `➡ ${p.recommendation}\n`;
+        text += `📝 ${p.reason}\n\n`;
       }
-
-      // 🎨 보기 좋은 텍스트 형태로 변환
-      let formattedText = `━━━━━━━━━━━━━━━━━━━\n`;
-      for (const person of priorityList) {
-        formattedText += `👤 ${person.name}\n`;
-        formattedText += `   🟩 상태: ${person.recommendation}\n`;
-        formattedText += `   🏷️ 키워드: ${
-          /업무 미완료/.test(person.reason)
-            ? "미완료 업무"
-            : person.recommendation === "승인"
-            ? "승인 가능"
-            : "기타"
-        }\n`;
-        formattedText += `   💬 이유: ${person.reason}\n\n`;
-      }
-      if (team.comment) formattedText += `📝 코멘트: ${team.comment}\n`;
-      formattedText += `━━━━━━━━━━━━━━━━━━━`;
-
-      team.formattedText = formattedText.trim();
-      return team;
+      text += `━━━━━━━━━━━━━━━━━━━`;
+      return { ...team, formattedText: text.trim() };
     });
 
-    // ✅ 9️⃣ 응답
     res.status(200).json({
       success: true,
-      results: formattedResults,
+      results: finalResults,
     });
+
   } catch (err) {
     console.error("❌ AI 판단 오류:", err);
-    res.status(500).json({ message: "AI 판단 중 오류 발생" });
+    res.status(500).json({ message: "AI 판단 오류" });
   }
 });
 

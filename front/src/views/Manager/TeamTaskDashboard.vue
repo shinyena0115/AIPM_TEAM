@@ -1,105 +1,117 @@
 <template>
-  <div class="dashboard min-h-screen bg-gray-50 p-10">
-    <!-- ✅ 헤더 -->
-    <div class="flex flex-wrap justify-between items-center mb-10">
-      <h2 class="text-3xl font-extrabold text-gray-800">팀원 업무 현황</h2>
-    </div>
+  <div class="manager-layout">
 
-    <!-- ✅ 로딩 상태 -->
-    <div v-if="loading" class="text-center text-gray-500 mt-10">
-      불러오는 중...
-    </div>
+    <!-- 📌 헤더 (고정) -->
+    <ManagerHeader
+      class="header-fixed"
+      @toggle-sidebar="sidebarOpen = !sidebarOpen"
+    />
 
-    <!-- ✅ 팀원별 카드 -->
-    <div
-      v-for="(member, index) in teamSummary"
-      :key="index"
-      class="member-card bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-6 mb-6"
-    >
-      <!-- ✅ 이름 -->
-      <h3 class="font-bold text-gray-800 text-lg mb-2">{{ member.name }}</h3>
+    <div class="content-area">
 
-      <!-- ✅ 통계 + 그래프 -->
-      <div class="summary-row">
-        <div class="summary-text">
-          <p>
-            <span class="text-gray-500">완료</span>
-            <span class="font-semibold text-green-600">{{ member.completed }}</span>
-          </p>
-          <p>
-            <span class="text-gray-500">진행</span>
-            <span class="font-semibold text-orange-500">{{ member.inProgress }}</span>
-          </p>
-          <p>
-            <span class="text-gray-500">평균 중요도</span>
-            <span class="font-semibold text-blue-500">{{ member.avgImportance }}</span>
-          </p>
-        </div>
+      <!-- 📌 사이드바 -->
+      <ManagerSidebar
+        class="sidebar-fixed"
+        :class="{ 'sidebar-closed': !sidebarOpen }"
+      />
 
-        <!-- ✅ 그래프 -->
-        <div class="chart-box relative">
-          <Doughnut :data="member.chartData" :options="chartOptions" />
-          <span
-            class="chart-center"
-            :style="{ color: progressColor(member.progress) }"
+      <!-- 📌 메인 콘텐츠 -->
+      <main class="main-content" :class="{ 'sidebar-hidden': !sidebarOpen }">
+
+        <div class="dashboard">
+
+          <h2 class="text-3xl font-extrabold text-gray-800 mb-10">
+            팀원 업무 현황
+          </h2>
+
+          <div v-if="loading" class="text-center text-gray-500 mt-10">
+            불러오는 중...
+          </div>
+
+          <!-- 🧩 팀원 카드 -->
+          <div
+            v-for="(member, index) in teamSummary"
+            :key="index"
+            class="member-card bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-6 mb-6"
           >
-            {{ member.progress }}%
-          </span>
-        </div>
-      </div>
+            <h3 class="font-bold text-gray-800 text-lg mb-2">
+              {{ member.name }}
+            </h3>
 
-      <!-- ✅ 더보기 버튼 -->
-      <button
-        class="text-sm text-blue-600 font-semibold hover:underline mt-3"
-        @click="toggleExpand(index)"
-      >
-        {{ expanded[index] ? "닫기" : "더보기" }}
-      </button>
+            <div class="summary-row">
+              <div class="summary-text">
+                <p>
+                  <span class="text-gray-500">완료</span>
+                  <span class="font-semibold text-green-600">{{ member.completed }}</span>
+                </p>
+                <p>
+                  <span class="text-gray-500">진행</span>
+                  <span class="font-semibold text-orange-500">{{ member.inProgress }}</span>
+                </p>
+                <p>
+                  <span class="text-gray-500">평균 중요도</span>
+                  <span class="font-semibold text-blue-500">{{ member.avgImportance }}</span>
+                </p>
+              </div>
 
-      <!-- ✅ 상세 업무 리스트 -->
-      <div v-if="expanded[index]" class="detail-table mt-3">
-        <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="py-2 px-3 border">업무명</th>
-              <th class="py-2 px-3 border">마감일</th>
-              <th class="py-2 px-3 border">중요도</th>
-              <th class="py-2 px-3 border">난이도</th>
-              <th class="py-2 px-3 border">상태</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(task, i) in member.tasks"
-              :key="i"
-              class="hover:bg-gray-50"
-            >
-              <td class="py-2 px-3 border text-left">{{ task.title }}</td>
-              <td class="py-2 px-3 border text-center">{{ formatDate(task.deadline) }}</td>
-              <td class="py-2 px-3 border text-center">{{ task.importance }}</td>
-              <td class="py-2 px-3 border text-center">{{ task.difficulty }}</td>
-              <td class="py-2 px-3 border text-center">
-                <span
-                  :class="[
-                    'px-2 py-1 rounded text-xs font-semibold',
-                    task.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  ]"
-                >
-                  {{ task.completed ? "완료" : "진행중" }}
+              <div class="chart-box relative">
+                <Doughnut :data="member.chartData" :options="chartOptions" />
+                <span class="chart-center" :style="{ color: progressColor(member.progress) }">
+                  {{ member.progress }}%
                 </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+              </div>
+            </div>
 
-    <!-- ✅ 데이터 없음 -->
-    <div
-      v-if="!loading && !teamSummary.length"
-      class="text-gray-500 text-center mt-12 text-lg"
-    >
-      현재 등록된 팀 업무가 없습니다.
+            <button @click="toggleExpand(index)">
+              {{ expanded[index] ? "닫기" : "더보기" }}
+            </button>
+
+            <div v-if="expanded[index]" class="detail-table mt-3">
+              <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
+                <thead class="bg-gray-100">
+                  <tr>
+                    <th class="py-2 px-3 border">업무명</th>
+                    <th class="py-2 px-3 border">마감일</th>
+                    <th class="py-2 px-3 border">중요도</th>
+                    <th class="py-2 px-3 border">난이도</th>
+                    <th class="py-2 px-3 border">상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(task, i) in member.tasks"
+                    :key="i"
+                    class="hover:bg-gray-50"
+                  >
+                    <td class="py-2 px-3 border text-left">{{ task.title }}</td>
+                    <td class="py-2 px-3 border text-center">{{ formatDate(task.deadline) }}</td>
+                    <td class="py-2 px-3 border text-center">{{ task.importance }}</td>
+                    <td class="py-2 px-3 border text-center">{{ task.difficulty }}</td>
+                    <td class="py-2 px-3 border text-center">
+                      <span
+                        :class="[
+                          'px-2 py-1 rounded text-xs font-semibold',
+                          task.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        ]"
+                      >
+                        {{ task.completed ? "완료" : "진행중" }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div
+            v-if="!loading && !teamSummary.length"
+            class="text-gray-500 text-center mt-12 text-lg"
+          >
+            현재 등록된 팀 업무가 없습니다.
+          </div>
+
+        </div>
+      </main>
     </div>
   </div>
 </template>
@@ -108,6 +120,13 @@
 import { ref, onMounted, computed, getCurrentInstance } from "vue";
 import { Doughnut } from "vue-chartjs";
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from "chart.js";
+
+/* 📌 추가된 부분 */
+import ManagerSidebar from "@/components/ManagerSidebar.vue";
+import ManagerHeader from "@/components/ManagerHeader.vue";
+
+const sidebarOpen = ref(true);
+/* ---------------- */
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
 
@@ -122,7 +141,6 @@ const fetchTeamTasks = async () => {
     if (res.data?.success && Array.isArray(res.data.tasks)) {
       tasks.value = res.data.tasks;
     } else if (Array.isArray(res.data)) {
-      // 백엔드가 단순 배열 반환 시 호환 처리
       tasks.value = res.data;
     }
   } catch (err) {
@@ -202,10 +220,80 @@ const chartOptions = {
 onMounted(fetchTeamTasks);
 </script>
 
-
-
-
 <style scoped>
+/* ======================
+   📌 전체 레이아웃
+====================== */
+.manager-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ======================
+   📌 헤더 (고정)
+====================== */
+.header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+/* ======================
+   📌 헤더 아래 전체
+====================== */
+.content-area {
+  display: flex;
+  width: 100%;
+  margin-top: 64px;
+}
+
+/* ======================
+   📌 사이드바
+====================== */
+.sidebar-fixed {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  height: calc(100vh - 64px);
+  width: 240px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  z-index: 90;
+}
+
+/* 숨김 */
+.sidebar-closed {
+  transform: translateX(-240px);
+}
+
+/* ======================
+   📌 메인 콘텐츠
+====================== */
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  padding: 2rem;
+  min-height: calc(100vh - 64px);
+  background: #f9fafb;
+  transition: margin-left 0.3s ease;
+}
+
+/* 사이드바 숨김 시 */
+.main-content.sidebar-hidden {
+  margin-left: 0;
+}
+
 
 /* ✅ 전체 페이지 */ 
 .dashboard { 

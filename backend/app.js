@@ -95,6 +95,7 @@ var vacationNoticeRouter = require("./routes/employee/VacationNotice");
 var aiTaskRouter = require("./routes/api/apiTask");
 var aiVacationRouter = require("./routes/api/apiVacation");
 
+
 var attendanceRouter = require("./routes/employee/attendance");
 var peerReviewRouter = require("./routes/employee/peerReview");
 var teamTaskDashboard = require("./routes/manager/teamTaskDashboard");
@@ -135,10 +136,13 @@ app.use("/api/calendar", employeeCalendarRouter);  // 팀원용 캘린더
 // ✅ 추가: AI 연차 판단 엔드포인트 등록
 app.use("/api/ai/vacations", aiVacationRouter);
 
+
 app.use("/api/attendance", attendanceRouter);
 app.use("/api/peer-review", peerReviewRouter);
 app.use("/api/manager", teamTaskDashboard);
 
+app.use("/api/manager", require("./routes/manager/team"));
+app.use("/api/ai/performance", require("./routes/api/aiPerformance"));
 
 
 // ✅ Calendar 라우터 등록

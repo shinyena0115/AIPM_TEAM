@@ -1,7 +1,6 @@
 <template>
   <aside class="sidebar">
-    <div class="logo">AIPM Manager</div>
-
+    
     <nav class="menu">
       <ul>
         <li
@@ -25,8 +24,8 @@
         </li>
 
         <li
-          @click="$router.push('/manager/reports')"
-          :class="{ active: isActive('/manager/reports') }"
+          @click="$router.push('/manager/ai-feedback')"
+          :class="{ active: isActive('/manager/ai-feedback') }"
         >
           리포트 요약
         </li>
@@ -74,12 +73,6 @@ export default {
   flex-direction: column;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-  color: #111827;
-}
 
 /* ===== 메뉴 스타일 ===== */
 .menu ul {
