@@ -1,7 +1,16 @@
 <template>
-  <div class="manager-vacation-page">
-    <!-- 사이드바 -->
-    <ManagerSidebar />
+  <div class="manager-layout">     <!-- 🔥 추가 -->
+
+    <!-- 🔥 최상단 고정 헤더 추가 -->
+    <ManagerHeader class="header-fixed" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+
+    <div class="layout-body">      <!-- 🔥 추가 -->
+        <ManagerSidebar v-if="sidebarOpen" />
+
+      <!-- 🔥 기존 전체 내용 감싸기 -->
+      <div class="page-wrapper" :class="{ 'sidebar-hidden': !sidebarOpen }">
+        <!-- ⬇⬇⬇ 기존 코드 전체 그대로 유지 ⬇⬇⬇ -->
+
 
     <!-- 메인 내용 -->
     <div class="content">
@@ -117,16 +126,20 @@
         </div>
       </div>
     </div>
-  </div>
+        </div> <!-- page-wrapper -->
+    </div> <!-- layout-body -->
+  </div> <!-- manager-layout -->
 </template>
+
 
 <script>
 import ManagerSidebar from "@/components/ManagerSidebar.vue";
+import ManagerHeader from "@/components/ManagerHeader.vue";
 import aiIcon from "@/assets/ai.png";
 
 export default {
   name: "ManagerVacation",
-  components: { ManagerSidebar },
+  components: { ManagerSidebar, ManagerHeader },
   data() {
     return {
       vacations: [],
@@ -135,6 +148,7 @@ export default {
       selectedVacationId: null,
       rejectionReason: "",
       aiIcon,
+      sidebarOpen: true,   // 🔥 추가
     };
   },
 
@@ -300,6 +314,52 @@ export default {
 </script>
 
 <style scoped>
+/* ======================
+   🔥 전체 관리자 레이아웃
+====================== */
+.manager-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 🔥 최상단 고정 헤더 */
+.header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+}
+
+/* 🔥 헤더 아래 본문 전체 */
+.layout-body {
+  margin-top:  60px; /* 헤더 높이만큼 내려줌 */
+  display: flex;
+}
+
+/* 🔥 페이지 전체 래퍼 (사이드바 포함) */
+.page-wrapper {
+  display: flex;
+  width: 100%;
+  transition: margin-left 0.3s ease;
+}
+
+/* 🔥 너의 기존 ManagerSidebar 기본 width가 220px이라고 가정 */
+.page-wrapper {
+  margin-left: 240pxpx;
+}
+
+/* 사이드바 숨김 */
+.page-wrapper.sidebar-hidden {
+  margin-left: 0;
+}
+
 /* 하이라이트 색상 */
 .ai-row-approve {
   background-color: #e9f7ee !important;

@@ -1,7 +1,6 @@
 <template>
   <aside class="sidebar">
-    <div class="logo">AIPM Manager</div>
-
+    
     <nav class="menu">
       <ul>
         <li
@@ -74,12 +73,6 @@ export default {
   flex-direction: column;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 30px;
-  color: #111827;
-}
 
 /* ===== 메뉴 스타일 ===== */
 .menu ul {
