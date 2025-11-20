@@ -41,6 +41,21 @@ function define(connection) {
                 allowNull: true,
                 references: { model: "teams", key: "id" },
             },
+            vacation_status: {
+                type: DataTypes.ENUM("근무중", "연차중"),
+                defaultValue: "근무중",
+                comment: "현재 연차 상태",
+            },
+            current_vacation_start: {
+                type: DataTypes.DATEONLY,
+                allowNull: true,
+                comment: "현재 연차 시작일",
+            },
+            current_vacation_end: {
+                type: DataTypes.DATEONLY,
+                allowNull: true,
+                comment: "현재 연차 종료일",
+            },
         },
         {
             indexes: [], // 자동 인덱스 생성 완전히 비활성화
@@ -234,11 +249,70 @@ function define(connection) {
         updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     });
 
+    // ✅ 개인 복귀 업무 테이블
+    const NextDayTodo = connection.define("next_day_todos", {
+        id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+        owner_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: { model: "users", key: "user_id" },
+        },
+        for_date: {
+            type: DataTypes.DATEONLY,
+            allowNull: false,
+        },
+        content: {
+            type: DataTypes.TEXT,
+            allowNull: false,
+        },
+        createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+        updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    });
+
+    // ✅ 업무 대체자 게시판 테이블
+    const ReplacementEntry = connection.define("replacement_entries", {
+        id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+        leaver_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: { model: "users", key: "user_id" },
+            comment: "연차자 ID",
+        },
+        leave_date: {
+            type: DataTypes.DATEONLY,
+            allowNull: false,
+            comment: "연차 날짜",
+        },
+        author_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: { model: "users", key: "user_id" },
+            comment: "작성자 ID",
+        },
+        text: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            comment: "대체 업무 내용",
+        },
+        createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+        updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    });
+
     // ✅ 관계 설정
     User.hasMany(PeerReview, { foreignKey: "reviewer_id", as: "GivenReviews" });
     User.hasMany(PeerReview, { foreignKey: "reviewee_id", as: "ReceivedReviews" });
     PeerReview.belongsTo(User, { foreignKey: "reviewer_id", as: "Reviewer" });
     PeerReview.belongsTo(User, { foreignKey: "reviewee_id", as: "Reviewee" });
+
+    // ✅ NextDayTodo 관계 설정
+    User.hasMany(NextDayTodo, { foreignKey: "owner_id", as: "NextDayTodos" });
+    NextDayTodo.belongsTo(User, { foreignKey: "owner_id", as: "Owner" });
+
+    // ✅ ReplacementEntry 관계 설정
+    User.hasMany(ReplacementEntry, { foreignKey: "leaver_id", as: "ReceivedReplacements" });
+    User.hasMany(ReplacementEntry, { foreignKey: "author_id", as: "WrittenReplacements" });
+    ReplacementEntry.belongsTo(User, { foreignKey: "leaver_id", as: "Leaver" });
+    ReplacementEntry.belongsTo(User, { foreignKey: "author_id", as: "Author" });
 
     // ✅ 관계 설정
     User.hasMany(Attendance, { foreignKey: "user_id", as: "Attendances" });
@@ -273,7 +347,7 @@ function define(connection) {
     //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
     //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
-    return { User, Department, Team, Task, Vacation, Attendance, PeerReview };
+    return { User, Department, Team, Task, Vacation, Attendance, PeerReview, NextDayTodo, ReplacementEntry };
 }
 
 module.exports = define;

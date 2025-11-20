@@ -1,241 +1,187 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-
 const router = express.Router();
+const { Op } = require('sequelize');
 
-// data 파일 위치 (없으면 자동 생성)
-const DATA_DIR = path.join(__dirname, '../../data');
-const DATA_PATH = path.join(DATA_DIR, 'vacationNotice.json');
-
-function ensureDataFile() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+// ✅ 세션 인증 미들웨어
+function requireLogin(req, res, next) {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ error: '로그인이 필요합니다' });
   }
-  if (!fs.existsSync(DATA_PATH)) {
-    const init = { nextDayTodos: [], replacementEntries: [], seq: 1 };
-    fs.writeFileSync(DATA_PATH, JSON.stringify(init, null, 2));
-    return init;
-  }
-  const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const init = { nextDayTodos: [], replacementEntries: [], seq: 1 };
-    fs.writeFileSync(DATA_PATH, JSON.stringify(init, null, 2));
-    return init;
-  }
-}
-
-function saveData(data) {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
-}
-
-// 메모리 캐시
-let { nextDayTodos, replacementEntries, seq } = ensureDataFile();
-
-// 사용자 식별 (X-User-Id 헤더)
-function getUserId(req) {
-  const v = (req.headers['x-user-id'] ?? '').toString().trim();
-  return v.length ? v : null;
-}
-
-function requireUid(req, res) {
-  const uid = getUserId(req);
-  if (!uid) {
-    res.status(400).json({ error: 'X-User-Id header required' });
-    return null;
-  }
-  return uid;
+  next();
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// ===== 기능 1: 개인 복귀 업무 =====
+// ===== 팀원 목록 조회 =====
+router.get('/team-members', requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.user.id || req.session.user.user_id;
+    const currentUser = await User.findByPk(userId);
 
-// 생성/업서트
-router.post('/next-day-todos', (req, res) => {
-  const uid = requireUid(req, res);
-  if (!uid) return;
-  const { forDate, content } = req.body || {};
-
-  if (!forDate || !DATE_RE.test(forDate)) {
-    return res
-      .status(400)
-      .json({ error: 'forDate must be YYYY-MM-DD' });
-  }
-  if (!content || !String(content).trim()) {
-    return res.status(400).json({ error: 'content required' });
-  }
-
-  const idx = nextDayTodos.findIndex(
-    (t) => t.ownerId === uid && t.forDate === forDate,
-  );
-  const now = new Date().toISOString();
-
-  if (idx >= 0) {
-    nextDayTodos[idx].content = String(content);
-    nextDayTodos[idx].updatedAt = now;
-  } else {
-    nextDayTodos.push({
-      ownerId: uid,
-      forDate,
-      content: String(content),
-      updatedAt: now,
-    });
-  }
-
-  saveData({ nextDayTodos, replacementEntries, seq });
-  res.json({ ok: true });
-});
-
-// 조회(본인 것만)
-router.get('/next-day-todos', (req, res) => {
-  const uid = requireUid(req, res);
-  if (!uid) return;
-
-  const { forDate } = req.query || {};
-  let rows = nextDayTodos.filter((t) => t.ownerId === uid);
-  if (forDate) {
-    rows = rows.filter((t) => t.forDate === forDate);
-  }
-  rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  res.json(rows);
-});
-
-// 삭제(특정 날짜)
-router.delete('/next-day-todos', (req, res) => {
-  const uid = requireUid(req, res);
-  if (!uid) return;
-
-  const { forDate } = req.query || {};
-  if (!forDate || !DATE_RE.test(forDate)) {
-    return res
-      .status(400)
-      .json({ error: 'forDate must be YYYY-MM-DD' });
-  }
-
-  const before = nextDayTodos.length;
-  nextDayTodos = nextDayTodos.filter(
-    (t) => !(t.ownerId === uid && t.forDate === forDate),
-  );
-  saveData({ nextDayTodos, replacementEntries, seq });
-  res.json({ ok: true, removed: before - nextDayTodos.length });
-});
-
-// ===== 기능 2: 업무 대체자 게시판 =====
-
-// 작성(팀원 누구나: 작성자=현재 사용자)
-router.post('/replacement', (req, res) => {
-  const authorId = requireUid(req, res);
-  if (!authorId) return;
-
-  const { leaverId, leaveDate, text } = req.body || {};
-  const leaver = (leaverId ?? '').toString().trim();
-
-  if (!leaver) {
-    return res
-      .status(400)
-      .json({ error: 'leaverId required (string)' });
-  }
-  if (!leaveDate || !DATE_RE.test(leaveDate)) {
-    return res
-      .status(400)
-      .json({ error: 'leaveDate must be YYYY-MM-DD' });
-  }
-
-  const row = {
-    id: seq++,
-    leaverId: leaver,
-    leaveDate,
-    authorId,
-    text: String(text || ''),
-    createdAt: new Date().toISOString(),
-  };
-  replacementEntries.push(row);
-  saveData({ nextDayTodos, replacementEntries, seq });
-  res.json({ ok: true, id: row.id });
-});
-
-// 열람(연차자 본인)
-router.get('/replacement', (req, res) => {
-  const uid = requireUid(req, res);
-  if (!uid) return;
-
-  const { leaveDate } = req.query || {};
-  let rows = replacementEntries.filter((e) => e.leaverId === uid);
-
-  if (leaveDate) {
-    if (!DATE_RE.test(leaveDate)) {
-      return res
-        .status(400)
-        .json({ error: 'leaveDate must be YYYY-MM-DD' });
+    if (!currentUser) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
     }
-    rows = rows.filter((e) => e.leaveDate === leaveDate);
-  }
 
-  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  res.json(rows);
+    // 같은 팀 또는 같은 부서의 사용자 조회
+    const teamMembers = await User.findAll({
+      where: {
+        [Op.or]: [
+          { team_id: currentUser.team_id },
+          { department_id: currentUser.department_id }
+        ],
+        status: 'active', // 활성 사용
+      },
+      attributes: ['user_id', 'name', 'email', 'vacation_status', 'current_vacation_start', 'current_vacation_end'],
+      order: [['name', 'ASC']],
+    });
+
+    res.json(teamMembers);
+  } catch (error) {
+    console.error('❌ 팀원 목록 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
 });
 
-// 수정(작성자 본인만)
-router.put('/replacement/:id', (req, res) => {
-  const uid = requireUid(req, res);
-  if (!uid) return;
+// ===== 업무 전달 메모 작성 =====
+router.post('/messages', requireLogin, async (req, res) => {
+  try {
+    const authorId = req.session.user.id || req.session.user.user_id;
+    const { leaverId, leaveDate, text } = req.body || {};
 
-  const id = Number(req.params.id);
-  const { text, leaveDate } = req.body || {};
+    if (!leaverId) {
+      return res.status(400).json({ error: '연차자를 선택하세요' });
+    }
+    if (!leaveDate || !DATE_RE.test(leaveDate)) {
+      return res.status(400).json({ error: 'leaveDate must be YYYY-MM-DD' });
+    }
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: '메모 내용을 입력하세요' });
+    }
 
-  const row = replacementEntries.find((e) => e.id === id);
-  if (!row) return res.status(404).json({ error: 'not found' });
-  if (row.authorId !== uid) {
-    return res
-      .status(403)
-      .json({ error: 'only author can edit' });
+    const message = await ReplacementEntry.create({
+      leaver_id: Number(leaverId),
+      leave_date: leaveDate,
+      author_id: authorId,
+      text: String(text),
+    });
+
+    res.json({ ok: true, id: message.id });
+  } catch (error) {
+    console.error('❌ 메모 작성 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
-
-  if (leaveDate && !DATE_RE.test(leaveDate)) {
-    return res
-      .status(400)
-      .json({ error: 'leaveDate must be YYYY-MM-DD' });
-  }
-  if (typeof text !== 'undefined') row.text = String(text);
-  if (leaveDate) row.leaveDate = leaveDate;
-
-  saveData({ nextDayTodos, replacementEntries, seq });
-  res.json({ ok: true });
 });
 
-// 삭제(작성자 본인만)
-router.delete('/replacement/:id', (req, res) => {
-  const uid = requireUid(req, res);
-  if (!uid) return;
+// ===== 내가 받은 업무 전달 조회 (연차자 본인) =====
+router.get('/received', requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.user.id || req.session.user.user_id;
+    const { leaveDate } = req.query || {};
 
-  const id = Number(req.params.id);
-  const idx = replacementEntries.findIndex((e) => e.id === id);
+    const where = { leaver_id: userId };
+    if (leaveDate && DATE_RE.test(leaveDate)) {
+      where.leave_date = leaveDate;
+    }
 
-  if (idx < 0) return res.status(404).json({ error: 'not found' });
-  if (replacementEntries[idx].authorId !== uid) {
-    return res
-      .status(403)
-      .json({ error: 'only author can delete' });
+    const messages = await ReplacementEntry.findAll({
+      where,
+      order: [['leave_date', 'DESC'], ['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'Author',
+          attributes: ['user_id', 'name', 'email'],
+        },
+      ],
+    });
+
+    res.json(messages);
+  } catch (error) {
+    console.error('❌ 받은 메모 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
-
-  replacementEntries.splice(idx, 1);
-  saveData({ nextDayTodos, replacementEntries, seq });
-  res.json({ ok: true });
 });
 
-// 전체 초기화 (데모 리셋)
-router.delete('/all', (_req, res) => {
-  nextDayTodos = [];
-  replacementEntries = [];
-  seq = 1;
-  saveData({ nextDayTodos, replacementEntries, seq });
-  res.json({ ok: true });
+// ===== 내가 작성한 업무 전달 조회 =====
+router.get('/sent', requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.user.id || req.session.user.user_id;
+    const { leaveDate } = req.query || {};
+
+    const where = { author_id: userId };
+    if (leaveDate && DATE_RE.test(leaveDate)) {
+      where.leave_date = leaveDate;
+    }
+
+    const messages = await ReplacementEntry.findAll({
+      where,
+      order: [['leave_date', 'DESC'], ['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'Leaver',
+          attributes: ['user_id', 'name', 'email'],
+        },
+      ],
+    });
+
+    res.json(messages);
+  } catch (error) {
+    console.error('❌ 작성한 메모 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// ===== 메모 수정 (작성자만) =====
+router.put('/messages/:id', requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.user.id || req.session.user.user_id;
+    const id = Number(req.params.id);
+    const { text, leaveDate } = req.body || {};
+
+    const message = await ReplacementEntry.findByPk(id);
+    if (!message) {
+      return res.status(404).json({ error: '메모를 찾을 수 없습니다' });
+    }
+    if (message.author_id !== userId) {
+      return res.status(403).json({ error: '작성자만 수정할 수 있습니다' });
+    }
+
+    if (leaveDate && !DATE_RE.test(leaveDate)) {
+      return res.status(400).json({ error: 'leaveDate must be YYYY-MM-DD' });
+    }
+
+    if (typeof text !== 'undefined') message.text = String(text);
+    if (leaveDate) message.leave_date = leaveDate;
+
+    await message.save();
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('❌ 메모 수정 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// ===== 메모 삭제 (작성자만) =====
+router.delete('/messages/:id', requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.user.id || req.session.user.user_id;
+    const id = Number(req.params.id);
+
+    const message = await ReplacementEntry.findByPk(id);
+    if (!message) {
+      return res.status(404).json({ error: '메모를 찾을 수 없습니다' });
+    }
+    if (message.author_id !== userId) {
+      return res.status(403).json({ error: '작성자만 삭제할 수 있습니다' });
+    }
+
+    await message.destroy();
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('❌ 메모 삭제 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
 });
 
 module.exports = router;

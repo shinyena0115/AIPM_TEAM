@@ -24,7 +24,7 @@ var connection = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process
 // ✅ 2. 모델 불러오기 및 정의 실행
 // ======================================
 var define = require("./model.js");
-const { User, Department, Team, Task, Vacation, Attendance, PeerReview } = define(connection); 
+const { User, Department, Team, Task, Vacation, Attendance, PeerReview, NextDayTodo, ReplacementEntry } = define(connection);
 
 // ✅ 전역 모델 등록 (라우터에서 바로 사용 가능)
 global.User = User;
@@ -32,8 +32,10 @@ global.Department = Department;
 global.Team = Team;
 global.Task = Task;
 global.Vacation = Vacation;
-global.Attendance = Attendance; 
-global.PeerReview = PeerReview; 
+global.Attendance = Attendance;
+global.PeerReview = PeerReview;
+global.NextDayTodo = NextDayTodo;
+global.ReplacementEntry = ReplacementEntry; 
 // ======================================
 // ✅ 3. 세션 설정 (MySQL 세션 저장소)
 // ======================================
