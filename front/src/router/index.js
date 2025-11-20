@@ -1,84 +1,81 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import Login from '../views/Login.vue' 
-import DepartmentCreate from '../views/Admin/DepartmentCreate.vue'; 
-import Register from '../views/Register.vue';  
-import UserManage from '../views/Admin/UserManage.vue' 
-import Tasks from '../views/Employee/Tasks.vue' 
-import AdminHome from '../views/Admin/AdminHome.vue' 
-import EmployeeHome from '../views/Employee/EmployeeHome.vue' 
+import Login from '../views/Login.vue'
+import DepartmentCreate from '../views/Admin/DepartmentCreate.vue'
+import Register from '../views/Register.vue'
+import UserManage from '../views/Admin/UserManage.vue'
+import Tasks from '../views/Employee/Tasks.vue'
+import AdminHome from '../views/Admin/AdminHome.vue'
+import EmployeeHome from '../views/Employee/EmployeeHome.vue'
 import EmployeeVacation from '../views/Employee/EmployeeVacation.vue'
-import ManagerVacation from '../views/Manager/ManagerVacation.vue' 
-import ManagerHome from '../views/Manager/ManagerHome.vue' 
 import VacationStatus from '../views/Employee/VacationStatus.vue'
+import VacationNotice from '../views/Employee/VacationNotice.vue'   // ✅ 추가 (연차 게시판)
 import PeerReview from '../views/Employee/PeerReview.vue'
+import ManagerVacation from '../views/Manager/ManagerVacation.vue'
+import ManagerHome from '../views/Manager/ManagerHome.vue'
 import TeamTaskDashboard from '../views/Manager/TeamTaskDashboard.vue'
+
 const routes = [
   {
     path: '/',
     name: 'home',
     component: HomeView
   },
+
   {
     path: '/about',
     name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
-  { 
-    path: '/login', 
-    name: 'Login', 
-    component: Login, 
-  }, 
-
-  { 
-    path: '/register', 
-    name: 'Register', 
-    component: Register, // ✅ 회원가입 페이지 등록 
-  }, 
-
-  { 
-    path: '/admin/departments', 
-    name: 'DepartmentCreate', 
-    component: DepartmentCreate 
-  }, 
-
-  { 
-    path: '/register', 
-    name: 'Register', 
-    component: Register, 
-  },
-
-  { 
-    path: '/admin/users', 
-    name: 'UserManage', 
-    component: UserManage 
-  }, 
-
-  { 
-    path: '/admin/home', // 
-    name: 'AdminHome', 
-    component: AdminHome 
-  },
-
-  //추가된 사원용 홈(대시보드)
-  { 
-    path: '/employee/home', // ✅ 추가된 사원용 홈(대시보드) 
-    name: 'EmployeeHome', 
-    component: EmployeeHome 
-  },
- 
-
- { 
-    path: '/employee/tasks', 
-    name: 'EmployeeTasks', 
-    component: Tasks // ✅ 사원용 업무페이지 라우트 등록 
-  }, 
 
   {
-    path: '/employee/vacation', // ✅ 추가된 연차신청 페이지
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
+  },
+
+  {
+    path: '/admin/departments',
+    name: 'DepartmentCreate',
+    component: DepartmentCreate
+  },
+
+  {
+    path: '/admin/users',
+    name: 'UserManage',
+    component: UserManage
+  },
+
+  {
+    path: '/admin/home',
+    name: 'AdminHome',
+    component: AdminHome
+  },
+
+  // ======================================
+  // 직원(Employee) 영역
+  // ======================================
+
+  {
+    path: '/employee/home',
+    name: 'EmployeeHome',
+    component: EmployeeHome
+  },
+
+  {
+    path: '/employee/tasks',
+    name: 'EmployeeTasks',
+    component: Tasks
+  },
+
+  {
+    path: '/employee/vacation',
     name: 'EmployeeVacation',
     component: EmployeeVacation
   },
@@ -89,44 +86,39 @@ const routes = [
     component: VacationStatus
   },
 
-   {
-    path: '/manager/home', 
-    name: 'ManagerHome', 
-    component: ManagerHome 
-  }, 
-
-   { 
-    path: '/admin/home', // ✅ 관리자 대시보드 
-    name: 'AdminHome', 
-    component: AdminHome 
+  {
+    path: '/employee/vacation-notice',        // ⭐ 직원 연차 게시판 페이지
+    name: 'VacationNotice',
+    component: VacationNotice
   },
-  { 
-    path: '/manager/vacation', // ✅ 매니저 연차 승인 관리 페이지 
-    name: 'ManagerVacation', 
-    component: ManagerVacation 
-  },
-  { 
-    path: '/manager/home', 
-    name: 'ManagerHome', 
-    component: ManagerHome 
-
-  }, 
 
   {
-  path: '/employee/peer-review',
-  name: 'PeerReview',
-  component: PeerReview
+    path: '/employee/peer-review',
+    name: 'PeerReview',
+    component: PeerReview
   },
-  
-  { 
-    path: '/manager/team-task-dashboard', 
-    name: 'TeamTaskDashboard', 
-    component: TeamTaskDashboard 
+
+  // ======================================
+  // 매니저(Manager) 영역
+  // ======================================
+
+  {
+    path: '/manager/home',
+    name: 'ManagerHome',
+    component: ManagerHome
   },
-  
 
-  
+  {
+    path: '/manager/vacation',
+    name: 'ManagerVacation',
+    component: ManagerVacation
+  },
 
+  {
+    path: '/manager/team-task-dashboard',
+    name: 'TeamTaskDashboard',
+    component: TeamTaskDashboard
+  },
 ]
 
 const router = createRouter({
