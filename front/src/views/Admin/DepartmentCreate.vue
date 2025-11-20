@@ -11,7 +11,7 @@
 
       <!-- 🔥 사이드바 -->
       <AdminSidebar
-        v-if="sidebarOpen"
+        v-show="sidebarOpen"
         class="admin-sidebar-fixed"
       />
 
