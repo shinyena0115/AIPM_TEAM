@@ -29,7 +29,7 @@ function define(connection) {
             },
             status: {
                 type: DataTypes.ENUM("pending", "active", "rejected"),
-                defaultValue: "pending",
+                defaultValue: "active",
             },
             department_id: {
                 type: DataTypes.INTEGER,
