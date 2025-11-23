@@ -300,19 +300,21 @@ export default {
 /* ================================
       헤더 영역
 ================================ */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
 .header h1 {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 1.6rem;
   color: #1f2937;
-  letter-spacing: -0.5px;
+  font-weight: 700;
 }
 
 .header p {
-  font-size: 15px;
-  margin-top: 6px;
-  color: #4b5563;
+  color: #6b7280;
+  margin-top: 0.5rem;
 }
-
 /* ================================
         날짜 선택 필터
 ================================ */

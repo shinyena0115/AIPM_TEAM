@@ -20,19 +20,22 @@
         <div class="user-manage">
 
           <!-- 페이지 헤더 -->
-          <header class="page-header">
+          <header class="header">
             <div>
               <h1>사원 관리</h1>
               <p>조직 구성원 정보를 확인하고 권한을 손쉽게 관리하세요.</p>
             </div>
-
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="🔍 이름 또는 이메일 검색"
-              class="search-input"
-            />
           </header>
+          <header class="search">
+  <div class="left-space"></div>
+
+  <input
+    v-model="searchQuery"
+    type="text"
+    placeholder="🔍 이름 또는 이메일 검색"
+    class="search-input"
+  />
+</header>
 
           <section class="card">
             <table>
@@ -199,23 +202,30 @@ export default {
   width: 100%;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+/* ===== 헤더 ===== */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-.page-header h1 {
-  font-size: 24px;
+.header h1 {
+  font-size: 1.6rem;
+  color: #1f2937;
   font-weight: 700;
 }
 
-.page-header p {
-  font-size: 14px;
+.header p {
   color: #6b7280;
+  margin-top: 0.5rem;
+}
+.search {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
+/* 검색 input */
 .search-input {
   width: 260px;
   padding: 10px 14px;
@@ -304,10 +314,10 @@ select {
 button {
   padding: 6px 12px;
   border-radius: 8px;
-  background: #2563eb;
+  background: #eb3f25;
   color: white;
 }
 button:hover {
-  background: #1d4ed8;
+  background: #eb3f25;
 }
 </style>
