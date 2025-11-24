@@ -27,7 +27,7 @@
           @click="$router.push('/manager/ai-feedback')"
           :class="{ active: isActive('/manager/ai-feedback') }"
         >
-          리포트 요약
+          AI 인사평가 분석
         </li>
 
         
