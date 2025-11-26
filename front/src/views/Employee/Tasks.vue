@@ -216,12 +216,12 @@
       <details class="advanced-options">
         <summary>고급 옵션 (직접 입력)</summary>
 
-        <div class="form-group">
-          <label>예상 소요시간 (분)</label>
-          <input v-model.number="newTask.estimatedTime" type="number" placeholder="예: 120" />
-        </div>
+        <div class="advanced-content">
+          <div class="form-group">
+            <label>예상 소요시간 (분)</label>
+            <input v-model.number="newTask.estimatedTime" type="number" placeholder="예: 120" />
+          </div>
 
-        <div class="form-grid">
           <div class="form-group">
             <label>난이도</label>
             <select v-model="newTask.difficulty">
@@ -231,6 +231,7 @@
               <option>어려움</option>
             </select>
           </div>
+
           <div class="form-group">
             <label>업무 유형</label>
             <select v-model="newTask.taskType">
@@ -241,19 +242,19 @@
               <option>회의</option>
             </select>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label>중요도</label>
-          <select v-model="newTask.importance">
-            <option value="">선택하세요</option>
-            <option>낮음</option>
-            <option>중간</option>
-            <option>높음</option>
-          </select>
-        </div>
+          <div class="form-group">
+            <label>중요도</label>
+            <select v-model="newTask.importance">
+              <option value="">선택하세요</option>
+              <option>낮음</option>
+              <option>중간</option>
+              <option>높음</option>
+            </select>
+          </div>
 
-        <button @click="addTask" class="btn-outline">수동으로 추가</button>
+          <button @click="addTask" class="btn-outline">수동으로 추가</button>
+        </div>
       </details>
     </div>
 
@@ -953,7 +954,11 @@ export default {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* 폼 스타일 */
+/* ===== 공통 폼 스타일 ===== */
+* {
+  box-sizing: border-box;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }
@@ -1094,7 +1099,7 @@ textarea {
   transition: all 0.3s;
   width: 100%;
   font-weight: 500;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .btn-outline:hover {
@@ -1391,30 +1396,55 @@ textarea {
   margin-bottom: 1.5rem;
 }
 
-/* 고급 옵션 스타일 */
+/* ===== 수동 업무 추가 카드 (고급 옵션) ===== */
 .advanced-options {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  margin: 1.5rem -2rem 0;
+  padding: 0 2rem;
 }
 
 .advanced-options summary {
   font-weight: 500;
   color: #6b7280;
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.75rem 1rem;
   user-select: none;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  list-style: none;
 }
 
-.advanced-options summary:hover {
+.advanced-options summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-options summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.5rem;
+  transition: transform 0.2s ease;
+  font-size: 0.75rem;
+}
+
+.advanced-options[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.advanced-options summary:hover,
+.advanced-options[open] summary {
   color: #10b981;
+  border-color: #10b981;
+  background: #f0fdf4;
 }
 
 .advanced-options[open] summary {
   margin-bottom: 1rem;
-  color: #10b981;
+}
+
+.advanced-content {
+  margin-top: 1rem;
+  overflow: hidden;
 }
 
 .ai-btn {
