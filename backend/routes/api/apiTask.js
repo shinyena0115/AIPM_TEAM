@@ -1,3 +1,15 @@
+/* =========================================================
+   AI Task Analysis API
+
+   이 파일은 OpenAI GPT를 활용한 업무 분석 기능만 제공합니다.
+   업무 CRUD는 /api/tasks (routes/employee/tasks.js)를 사용하세요.
+
+   제공 기능:
+   - POST /api/ai/analyze-documents      : 이미지/PDF 문서 AI 분석
+   - POST /api/ai/tasks/ai-priority      : AI 업무 우선순위 추천
+   - POST /api/ai/analyze-simple-task    : 간단 업무 AI 분석
+========================================================= */
+
 var express = require('express');
 var router = express.Router();
 var OpenAI = require('openai');
@@ -41,64 +53,12 @@ router.use((req, res, next) => {
   next();
 });
 
-// 메모리에 업무 저장
-var tasks = [];
-var nextId = 1;
-
-
-
-// 업무 추가
-router.post('/tasks', (req, res) => {
-  var newTask = {
-    id: nextId++,
-    user_id: req.body.user_id,   // 👈 로그인한 사용자 ID 추가
-    title: req.body.title,
-    deadline: req.body.deadline,
-    estimatedTime: req.body.estimatedTime,
-    difficulty: req.body.difficulty,
-    taskType: req.body.taskType,
-    importance: req.body.importance, 
-    createdAt: new Date(),
-    completed: false
-  };
-  
-  tasks.push(newTask);
-  
-  res.json({ 
-    success: true, 
-    task: newTask 
-  });
-});
-// 모든 업무 조회
-router.get('/tasks', (req, res) => {
- const userId = req.query.user_id;
-  const userTasks = tasks.filter(t => t.user_id == userId); // 👈 user_id 없으면 빈 배열
-  res.json({ 
-    success: true, 
-    tasks: userTasks 
-  });
-});
-
-// 업무 완료 처리
-router.patch('/tasks/:id/complete', (req, res) => {
-  var taskId = parseInt(req.params.id);
-  var task = tasks.find(t => t.id === taskId);
-  
-  if (task) {
-    task.completed = true;
-    task.completedAt = new Date();
-    res.json({ success: true, task: task });
-  } else {
-    res.json({ success: false, error: '업무를 찾을 수 없습니다' });
-  }
-});
-
-// 업무 삭제
-router.delete('/tasks/:id', (req, res) => {
-  var taskId = parseInt(req.params.id);
-  tasks = tasks.filter(t => t.id !== taskId);
-  res.json({ success: true });
-});
+/* =========================================================
+   AI 업무 분석 API
+   - 문서 분석 (이미지/PDF)
+   - AI 우선순위 추천
+   - 간단 업무 분석
+========================================================= */
 
 // 여러 협조문 파일 분석 (이미지, PDF, 텍스트 지원)
 router.post('/analyze-documents', upload.array('documents', 10), async (req, res) => {
@@ -470,90 +430,159 @@ ${contentForAI}
   }
 });
 
-// AI 우선순위 추천
+// AI 우선순위 추천 (개선된 버전)
 router.post('/tasks/ai-priority', async (req, res) => {
   var taskList = req.body.tasks;
-  
+
   if (!taskList || taskList.length === 0) {
-    return res.json({ 
-      success: false, 
-      error: '추천할 업무가 없습니다' 
+    return res.json({
+      success: false,
+      error: '추천할 업무가 없습니다'
     });
   }
 
-  // 업무 목록을 텍스트로 변환
-  var taskText = taskList.map((task, index) => {
-    return `${index + 1}. ${task.title}
-   - 마감: ${task.deadline}
-   - 예상 소요시간: ${task.estimatedTime}분
-   - 난이도: ${task.difficulty}
-   - 유형: ${task.taskType}
-   - 중요도: ${task.importance}`;
+  // 현재 시각 기준 긴급도 계산
+  var now = new Date();
+  var tasksWithUrgency = taskList.map((task, index) => {
+    var deadline = new Date(task.deadline);
+    var hoursLeft = (deadline - now) / (1000 * 60 * 60);
+    var daysLeft = Math.floor(hoursLeft / 24);
+
+    var urgencyLevel = '';
+    if (hoursLeft < 0) urgencyLevel = '⚠️ 지연됨';
+    else if (hoursLeft <= 24) urgencyLevel = '🔴 긴급 (24시간 이내)';
+    else if (hoursLeft <= 48) urgencyLevel = '🟠 급함 (48시간 이내)';
+    else if (daysLeft <= 7) urgencyLevel = '🟡 임박 (1주일 이내)';
+    else urgencyLevel = '🟢 여유 있음';
+
+    return {
+      ...task,
+      index: index + 1,
+      hoursLeft: hoursLeft,
+      daysLeft: daysLeft,
+      urgencyLevel: urgencyLevel
+    };
+  });
+
+  // 업무 목록을 상세하게 텍스트로 변환
+  var taskText = tasksWithUrgency.map((task) => {
+    var descriptionText = task.description ? `\n   📝 상세: ${task.description}` : '';
+    return `${task.index}. 【${task.taskType}】 ${task.title}${descriptionText}
+   ⏰ 마감: ${task.deadline} ${task.urgencyLevel}
+   ⚡ 중요도: ${task.importance} | 난이도: ${task.difficulty} | 소요시간: ${task.estimatedTime}분`;
   }).join('\n\n');
 
-  console.log('=== 전송된 업무 데이터 ===');
+  console.log('=== AI 우선순위 분석 요청 ===');
   console.log(taskText);
-  console.log('========================');
+  console.log('============================');
 
-  var prompt = `당신은 업무 관리 전문가입니다.
-아래 업무들을 분석하여 가장 효율적인 처리 순서를 추천해주세요.
+  var prompt = `당신은 소프트웨어 개발팀의 업무 관리 전문가입니다.
+아래 업무들을 종합적으로 분석하여 가장 효율적인 처리 순서를 추천해주세요.
 
-업무 목록:
+📋 **업무 목록** (총 ${taskList.length}개):
 ${taskText}
 
-현재 시각: ${new Date().toLocaleString('ko-KR')}
+⏱️ **현재 시각**: ${now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
 
-우선순위 결정 기준 (중요도 순):
-1. **중요도**: 높음 > 중간 > 낮음 (가장 중요한 기준!)
-   - 중요도 "높음"은 절대 늦어지면 안 되는 업무
-   - 중요도 "낮음"은 늦어져도 큰 리스크가 없는 업무
-2. **마감일**: 임박한 순서대로
-3. **소요시간**: 짧은 업무를 먼저 처리하면 심리적 부담 감소
-4. **난이도**: 어려운 업무는 집중력이 높은 시간대에
-5. **업무 유형**: 전화는 업무시간, 문서작업은 조용한 시간
+---
 
-중요: 같은 마감일이어도 중요도가 높은 업무를 반드시 먼저 추천하세요!
+🎯 **우선순위 결정 기준**:
 
-다음 형식으로 답변해주세요:
+1. **긴급도 & 마감일** (최우선)
+   - 24시간 이내 마감 업무는 즉시 처리 필요
+   - 지연된 업무는 최우선 처리
+   - 마감일이 가까울수록 우선순위 상승
 
-1순위: [업무명]
-이유: [중요도를 언급하며 이 업무를 먼저 처리해야 하는 구체적인 이유]
+2. **중요도** (핵심 기준)
+   - "높음": 비즈니스 임팩트가 큰 업무, 다른 업무를 블로킹하는 업무
+   - "중간": 일반적인 업무
+   - "낮음": 늦어져도 큰 영향이 없는 업무
 
-2순위: [업무명]
-이유: [중요도를 언급하며 구체적인 이유]
+3. **업무 유형별 특성**:
 
-3순위: [업무명]
-이유: [중요도를 언급하며 구체적인 이유]
+   🔹 **회의 (Meeting)**
+   - 회의 내용/참석자의 중요도 분석 필수
+   - CEO/임원 참석 회의 = 최우선
+   - 의사결정 회의 > 정기 보고 회의
+   - 준비 시간 고려 (자료 준비 필요 시 더 일찍 시작)
 
-추가 조언: [전체적인 업무 처리에 대한 실용적인 팁]`;
+   🔹 **개발 (Development)**
+   - 다른 팀원을 블로킹하는 작업인지 확인
+   - 배포/릴리즈와 연관성 체크
+   - 코드 리뷰 시간 고려
+
+   🔹 **버그수정 (Bug Fix)**
+   - 프로덕션 이슈 = 최우선
+   - 사용자 영향도 평가 (많은 사용자 영향 = 긴급)
+   - Hot-fix 필요 여부 판단
+
+   🔹 **기획 (Planning)**
+   - 다른 업무의 선행 작업인지 확인
+   - 의사결정 필요 여부
+
+4. **난이도 & 소요시간**
+   - 어려운 업무는 집중력이 높은 시간대(오전)에 배치
+   - 짧은 업무(15-30분)는 틈새 시간에 처리 가능
+   - 긴 업무(2시간+)는 방해받지 않는 시간대에
+
+5. **업무 간 의존성**
+   - 이 업무가 완료되어야 다른 업무를 시작할 수 있는가?
+   - 다른 팀원의 업무를 블로킹하고 있는가?
+   - 외부 의존성(API, 디자인, 기획서 등) 확인
+
+---
+
+📝 **응답 형식** (모든 업무에 대해):
+
+**1순위: [업무명]**
+⭐ 선정 이유:
+- 긴급도: [지금 처리해야 하는 이유]
+- 중요도: [비즈니스/팀에 미치는 영향]
+- 업무 특성: [이 업무 유형의 특별한 고려사항]
+- 의존성: [다른 업무와의 관계]
+
+**2순위: [업무명]**
+⭐ 선정 이유:
+- 긴급도: ...
+- 중요도: ...
+- 업무 특성: ...
+- 의존성: ...
+
+(모든 업무에 대해 순위 부여)
+
+---
+
+💡 **전체 업무 처리 전략**:
+[시간대별 권장사항, 주의사항, 실용적인 팁을 포함한 종합 조언]`;
 
   try {
-    // 올바른 Chat Completions API 사용
     var response = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "당신은 웹개발자의 업무를 돕는 업무 관리 전문가입니다. 업무의 중요도를 최우선으로 고려하여 추천합니다."
+          content: "당신은 10년 경력의 소프트웨어 개발팀 프로젝트 매니저입니다. 업무의 맥락을 깊이 이해하고, 팀의 생산성을 최대화하는 실용적인 조언을 제공합니다."
         },
         {
           role: "user",
           content: prompt
         }
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
     });
 
     var recommendation = response.choices[0].message.content;
-    
-    console.log('AI 추천 완료:', recommendation);
-    
-    res.json({ 
-      success: true, 
-      recommendation: recommendation 
+
+    console.log('✅ AI 우선순위 추천 완료');
+
+    res.json({
+      success: true,
+      recommendation: recommendation
     });
 
   } catch (error) {
-    console.error('AI 추천 에러:', error);
+    console.error('❌ AI 추천 에러:', error);
     res.json({
       success: false,
       error: 'AI 추천에 실패했습니다: ' + error.message
