@@ -18,14 +18,14 @@
       <!-- 🔥 메인 -->
       <main class="page-wrapper" :class="{ 'sidebar-hidden': !sidebarOpen }">
 
-        <div class="page-header">
+        <div class="header">
           <div>
             <h1>부서 및 팀 관리</h1>
             <p>조직의 부서 및 팀을 효율적으로 관리하세요.</p>
           </div>
-          <button class="add-btn" @click="showDeptModal = true">
-            + 부서 등록하기
-          </button>
+          <div class="header-button-wrap">
+  <button class="add-department-btn" @click="showDeptModal = true">+ 부서 등록하기</button>
+</div>
         </div>
 
         <!-- 🔥 카드 -->
@@ -200,35 +200,42 @@ export default {
   margin-left: 0;
 }
 
-/* 🔥 페이지 헤더 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+/* ===== 헤더 ===== */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-.page-header h1 {
-  font-size: 24px;
+.header h1 {
+  font-size: 1.6rem;
+  color: #1f2937;
   font-weight: 700;
 }
 
-.page-header p {
-  font-size: 14px;
+.header p {
   color: #6b7280;
+  margin-top: 0.5rem;
 }
 
-.add-btn {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 9px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
+.header-button-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
 }
-.add-btn:hover {
-  background: #1e40af;
+
+.add-department-btn {
+  background: #eb3f25;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s;
+}
+
+.add-department-btn:hover {
+  background: #eb3f25;
 }
 
 /* 카드 공통 */
@@ -300,20 +307,98 @@ export default {
   font-size: 14px;
 }
 
-/* 모달 */
+/* 🔥 모달 전체 배경 */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 999; /* 최상단 표시 */
+  backdrop-filter: blur(2px); /* 부드러운 블러 효과 */
 }
 
+/* 🔥 모달 박스 */
 .modal-content {
   background: white;
-  border-radius: 12px;
-  padding: 24px;
-  min-width: 320px;
+  border-radius: 14px;
+  padding: 28px 26px;
+  width: 380px;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.1),
+    0 0 2px rgba(0, 0, 0, 0.08);
+  animation: popIn 0.2s ease-out;
 }
+
+/* 🔥 애니메이션 */
+@keyframes popIn {
+  0%   { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 🔥 제목 */
+.modal-content h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+/* 🔥 입력창 */
+.modal-content input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ffbbb0;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.modal-content input:focus {
+  border-color: #eb3f25;
+  box-shadow: 0 0 0 3px #ffbbb0;
+}
+
+/* 🔥 버튼 그룹 */
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* 🔥 등록 버튼 */
+.modal-buttons button:first-child {
+  background: #eb3f25;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.modal-buttons button:first-child:hover {
+  background: #eb3f25;
+}
+
+/* 🔥 취소 버튼 */
+.modal-buttons button:last-child {
+  background: #ffbbb0;
+  border: 1px solid #ffbbb0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #374151;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.modal-buttons button:last-child:hover {
+  background: #ffbbb0;
+}
+
 </style>

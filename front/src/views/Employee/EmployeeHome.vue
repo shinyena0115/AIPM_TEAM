@@ -42,10 +42,7 @@
           <CalendarComponent />
         </div>
 
-        <div class="events">
-          <h3>Upcoming Events</h3>
-          <p>등록된 일정이 없습니다.</p>
-        </div>
+        
       </aside>
     </div>
   </div>

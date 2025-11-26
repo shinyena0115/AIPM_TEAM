@@ -67,19 +67,20 @@ router.post("/ai-vacation-priority", async (req, res) => {
       if (importantTask) {
         ruleBased = "중요 업무 - 팀장 판단 필요";
       }
-      // ⭐ 업무 미완료 예외 처리 (긴급 의료 사유 → 팀장 판단 필요)
-if (ruleBased === "업무 미완료 - 반려 필요") {
-  const emergencyKeywords = ["병원", "진료", "응급", "수술", "고열", "의료"];
-  const reasonText = (vac.reason || "").toLowerCase();
 
-  const isEmergency = emergencyKeywords.some(k =>
-    reasonText.includes(k.toLowerCase())
-  );
+      // ⭐ 긴급 사유 예외 처리
+      if (ruleBased === "업무 미완료 - 반려 필요") {
+        const emergencyKeywords = ["병원", "진료", "응급", "수술", "고열", "의료"];
+        const reasonText = (vac.reason || "").toLowerCase();
 
-  if (isEmergency) {
-    ruleBased = "중요 업무 - 팀장 판단 필요";
-  }
-}
+        const isEmergency = emergencyKeywords.some(k =>
+          reasonText.includes(k.toLowerCase())
+        );
+
+        if (isEmergency) {
+          ruleBased = "중요 업무 - 팀장 판단 필요";
+        }
+      }
 
       if (!teamGroups[teamName]) teamGroups[teamName] = [];
 
@@ -87,8 +88,8 @@ if (ruleBased === "업무 미완료 - 반려 필요") {
         name: vac.user?.name,
         reason: vac.reason || "사유 없음",
         ruleBased,
-        startDate: vac.startDate,     // ⭐ 추가 유지
-        endDate: vac.endDate,         // ⭐ 추가 유지
+        startDate: vac.startDate,
+        endDate: vac.endDate,
         incompleteTasks: incompleteTasks.map((t) => ({
           title: t.title,
           deadline: t.deadline,
@@ -103,7 +104,7 @@ if (ruleBased === "업무 미완료 - 반려 필요") {
       members,
     }));
 
-    // 3) AI 프롬프트 - 날짜 반드시 포함하도록 요구
+    // 3) AI 프롬프트
     const prompt = `
 당신은 회사의 HR AI 어시스턴트입니다.
 입력된 데이터는 다음 두 가지 정보를 포함합니다:
@@ -118,13 +119,13 @@ if (ruleBased === "업무 미완료 - 반려 필요") {
 
 ---
 
-### 🔹 규칙 기반 우선 처리 방식
+### 규칙 기반 우선 처리 방식
 - ruleBased = "업무 미완료 - 반려 필요" → 무조건 반려
 - ruleBased = "중요 업무 - 팀장 판단 필요" → 팀장 판단 필요 가능성 높음
 
 ---
 
-### 🔹 자연어 해석 규칙 (AI 전용)
+### 자연어 해석 규칙 (AI 전용)
 사유(reason)를 아래 3단계로 분류:
 
 **긴급(5점)**
@@ -136,10 +137,8 @@ if (ruleBased === "업무 미완료 - 반려 필요") {
 - 행정 업무, 병문안, 면접, 가족 돌봄
 
 **비긴급(1점)**
-- 여행, 개인 휴가, 여가, 놀거리
-- 단, "항공권/숙소/티켓/예약/비행기" 등 포함 시 일정 변경 불가 → 가중치 상승 (3점 처리)
-
-
+- 여행, 개인 휴가, 여가
+- 단 "항공권/숙소/티켓/예약" 포함 시 일정 변경 불가 → 3점
 
 ---
 
@@ -192,8 +191,8 @@ ${JSON.stringify(teamsForAI, null, 2)}
                         type: "object",
                         properties: {
                           name: { type: "string" },
-                          startDate: { type: "string" },   // ⭐ 스키마에 추가
-                          endDate: { type: "string" },     // ⭐ 스키마에 추가
+                          startDate: { type: "string" },
+                          endDate: { type: "string" },
                           urgencyLevel: { type: "number" },
                           recommendation: { type: "string" },
                           reason: { type: "string" },
@@ -219,21 +218,92 @@ ${JSON.stringify(teamsForAI, null, 2)}
       },
     });
 
-    const raw = aiResponse.choices[0]?.message?.content || "{}";
+     const raw = aiResponse.choices[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
 
-    const teams = parsed.teams || [];
+    let teams = parsed.teams || [];
 
-    // 5) 프론트 표시용 가공
+    // ============================================================
+    // ⭐⭐⭐ 날짜 겹침 그룹 생성 + BFS 완전 오버랩 + groupNumber/priorityRank ⭐⭐⭐
+    // ============================================================
+
+    const buildOverlapGroups = (list) => {
+      const isOverlap = (a, b) => {
+        return !(
+          new Date(a.endDate) < new Date(b.startDate) ||
+          new Date(b.endDate) < new Date(a.startDate)
+        );
+      };
+
+      const visited = new Set();
+      const groups = [];
+
+      for (let i = 0; i < list.length; i++) {
+        if (visited.has(i)) continue;
+
+        const queue = [i];
+        const group = [];
+        visited.add(i);
+
+        while (queue.length) {
+          const cur = queue.shift();
+          group.push(list[cur]);
+
+          for (let j = 0; j < list.length; j++) {
+            if (visited.has(j)) continue;
+
+            if (isOverlap(list[cur], list[j])) {
+              visited.add(j);
+              queue.push(j);
+            }
+          }
+        }
+
+        groups.push(group);
+      }
+
+      return groups;
+    };
+
+    // ⭐ 단 1번만 map 실행
+    teams = teams.map((team) => {
+      const list = [...team.priority].sort(
+        (a, b) => b.urgencyLevel - a.urgencyLevel
+      );
+
+      const groups = buildOverlapGroups(list);
+
+      let finalList = [];
+      let groupNumber = 1;
+
+      for (const group of groups) {
+        group.sort((a, b) => b.urgencyLevel - a.urgencyLevel);
+
+        group.forEach((p, idx) => {
+          p.groupNumber = groupNumber;
+          p.priorityRank = idx + 1;
+        });
+
+        finalList.push(...group);
+        groupNumber++;
+      }
+
+      return { ...team, priority: finalList };
+    });
+
+    // 5) 텍스트 출력 생성
     const finalResults = teams.map((team) => {
       let text = `━━━━━━━━━━━━━━━━━━━\n`;
+
       for (const p of team.priority) {
-        text += `👤 ${p.name}\n`;
-        text += `📅 ${p.startDate} ~ ${p.endDate}\n`;   // ⭐ 날짜 출력
+        text += `👤 ${p.name} (그룹 ${p.groupNumber} / ${p.priorityRank}순위)\n`;
+        text += `📅 ${p.startDate} ~ ${p.endDate}\n`;
         text += `➡ ${p.recommendation}\n`;
         text += `📝 ${p.reason}\n\n`;
       }
+
       text += `━━━━━━━━━━━━━━━━━━━`;
+
       return { ...team, formattedText: text.trim() };
     });
 
@@ -241,7 +311,6 @@ ${JSON.stringify(teamsForAI, null, 2)}
       success: true,
       results: finalResults,
     });
-
   } catch (err) {
     console.error("❌ AI 판단 오류:", err);
     res.status(500).json({ message: "AI 판단 오류" });

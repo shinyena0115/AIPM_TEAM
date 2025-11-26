@@ -43,14 +43,6 @@
               <p>손쉽게 관리할 수 있습니다.</p>
             </div>
           </div>
-
-          <div class="feature-card">
-            <h3>시스템 모니터링</h3>
-            <div class="feature-desc">
-              <p>AI 기반으로 서버 상태 및 활동 로그를</p>
-              <p>실시간으로 확인하세요.</p>
-            </div>
-          </div>
         </div>
       </main>
 
@@ -61,21 +53,7 @@
           <CalendarComponent />
         </div>
 
-        <div class="summary">
-          <h3>System Overview</h3>
-          <ul>
-            <li>총 부서 수: <strong>5</strong></li>
-            <li>총 사원 수: <strong>42</strong></li>
-            <li>활성 사용자: <strong>38</strong></li>
-          </ul>
-        </div>
-
-        <div class="alerts">
-          <h3>Recent Notifications</h3>
-          <div class="event red">신규 사원 등록 요청 - 검토 필요</div>
-          <div class="event yellow">팀 구조 변경 제안서 승인 대기</div>
-          <div class="event blue">시스템 점검 예정 (11/03 22:00)</div>
-        </div>
+        
       </aside>
 
     </div>
@@ -187,8 +165,13 @@ export default {
 .sidebar-right {
   width: 300px;
   background: #fff;
-  border-left: 1px solid #e6e6e6;
+  border-left: 1px solid #e5e7eb;
   padding: 20px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
 }
 
 /* 인사말 */
