@@ -561,5 +561,102 @@ ${taskText}
   }
 });
 
+// ===== 간단 업무 분석 (제목 + 마감일만으로 AI 분석) =====
+router.post('/analyze-simple-task', async (req, res) => {
+  try {
+    const { title, deadline } = req.body;
+
+    if (!title || !deadline) {
+      return res.json({
+        success: false,
+        error: '제목과 마감일을 입력해주세요'
+      });
+    }
+
+    const prompt = `다음 업무를 분석해주세요:
+
+업무 제목: ${title}
+마감일: ${deadline}
+
+이 업무의 다음 항목을 판단해주세요:
+1. 난이도 (쉬움/보통/어려움)
+   - 업무의 기술적 복잡도와 요구되는 전문성을 고려
+2. 업무 유형 (기획/개발/버그수정/회의)
+   - 업무 제목에서 가장 적합한 유형 선택
+3. 중요도 (낮음/중간/높음)
+   - 마감일 임박도와 업무의 영향도를 고려
+   - 거래처, 고객, 핵심 기능 관련은 중요도 높음
+4. 예상 소요시간 (분 단위, 숫자만)
+   - 일반적인 개발자 기준으로 예상되는 시간
+5. 판단 근거
+   - 위 판단의 이유를 간단히 설명`;
+
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "당신은 웹개발 업무를 분석하는 전문가입니다. 업무 제목과 마감일을 보고 적절한 난이도, 유형, 중요도를 판단합니다."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "simple_task_analysis",
+          schema: {
+            type: "object",
+            properties: {
+              difficulty: {
+                type: "string",
+                enum: ["쉬움", "보통", "어려움"],
+                description: "업무 난이도"
+              },
+              taskType: {
+                type: "string",
+                enum: ["기획", "개발", "버그수정", "회의"],
+                description: "업무 유형"
+              },
+              importance: {
+                type: "string",
+                enum: ["낮음", "중간", "높음"],
+                description: "업무 중요도"
+              },
+              estimatedTime: {
+                type: "number",
+                description: "예상 소요시간(분)"
+              },
+              reason: {
+                type: "string",
+                description: "판단 근거"
+              }
+            },
+            required: ["difficulty", "taskType", "importance", "estimatedTime", "reason"],
+            additionalProperties: false
+          }
+        }
+      }
+    });
+
+    const analysis = JSON.parse(response.choices[0].message.content);
+    console.log('✅ 간단 업무 AI 분석 완료:', analysis);
+
+    res.json({
+      success: true,
+      analysis
+    });
+
+  } catch (error) {
+    console.error('❌ 간단 업무 분석 실패:', error);
+    res.json({
+      success: false,
+      error: 'AI 분석에 실패했습니다: ' + error.message
+    });
+  }
+});
+
 
 module.exports = router;

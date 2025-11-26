@@ -130,7 +130,16 @@
                   </span>
                 </div>
                 <div class="message-content">{{ msg.text }}</div>
-                <div class="message-time">등록: {{ formatDateTime(msg.createdAt) }}</div>
+                <div class="message-footer">
+                  <div class="message-time">등록: {{ formatDateTime(msg.createdAt) }}</div>
+                  <button
+                    :disabled="busy || addingTaskId === msg.id"
+                    class="btn-add-task"
+                    @click="addAsTask(msg)"
+                  >
+                    {{ addingTaskId === msg.id ? '🤖 추가 중...' : '📋 업무로 추가' }}
+                  </button>
+                </div>
               </li>
             </ul>
             <p v-else class="tip">받은 업무 전달 메모가 없습니다.</p>
@@ -254,12 +263,31 @@ export default {
       editingMessage: null,
       editLeaveDate: '',
       editText: '',
+
+      // 업무로 추가
+      addingTaskId: null,
     };
   },
   computed: {
     filteredTeamMembers() {
       if (this.filterVacationOnly) {
-        return this.teamMembers.filter(user => user.vacation_status === '연차중');
+        const today = new Date().toISOString().split('T')[0]; // 오늘 날짜 (YYYY-MM-DD)
+
+        return this.teamMembers.filter(user => {
+          // 1. vacation_status가 '연차중'인지 확인
+          if (user.vacation_status !== '연차중') {
+            return false;
+          }
+
+          // 2. 연차 종료일이 지났는지 확인
+          if (user.current_vacation_end && user.current_vacation_end < today) {
+            // 연차가 끝났으면 제외
+            return false;
+          }
+
+          // 연차중이고 종료일이 지나지 않았으면 포함
+          return true;
+        });
       }
       return this.teamMembers;
     }
@@ -456,6 +484,61 @@ export default {
         this.alertErr(e);
       } finally {
         this.busy = false;
+      }
+    },
+
+    // ================= 업무로 추가 =================
+    async addAsTask(msg) {
+      if (!msg.text || !msg.leave_date) {
+        return alert('메모 정보가 올바르지 않습니다');
+      }
+
+      this.addingTaskId = msg.id;
+      try {
+        // 마감일: 연차 날짜 당일 18시로 설정
+        const deadline = `${msg.leave_date}T18:00:00`;
+
+        // AI 분석 API 호출
+        const analysisResponse = await this.$axios.post(
+          'http://localhost:3000/api/ai/analyze-simple-task',
+          {
+            title: msg.text,
+            deadline: deadline
+          }
+        );
+
+        if (!analysisResponse.data.success) {
+          alert('AI 분석 실패: ' + analysisResponse.data.error);
+          return;
+        }
+
+        const analysis = analysisResponse.data.analysis;
+
+        // 분석 결과로 업무 생성
+        const taskResponse = await this.$axios.post(
+          'http://localhost:3000/api/tasks',
+          {
+            title: msg.text,
+            deadline: deadline,
+            estimated_time: analysis.estimatedTime,
+            difficulty: analysis.difficulty,
+            taskType: analysis.taskType,
+            importance: analysis.importance
+          },
+          {
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+
+        if (taskResponse.data.success) {
+          alert(`✅ 업무가 추가되었습니다!\n\n${analysis.reason}`);
+        }
+      } catch (error) {
+        console.error('업무 추가 실패:', error);
+        this.alertErr(error, '업무 추가에 실패했습니다');
+      } finally {
+        this.addingTaskId = null;
       }
     },
   },
@@ -685,7 +768,13 @@ li {
 .message-time {
   font-size: 0.8rem;
   color: #9ca3af;
-  text-align: right;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
 }
 
 .message-actions {
@@ -700,7 +789,8 @@ li {
 .btn-primary,
 .btn-secondary,
 .btn-edit,
-.btn-delete {
+.btn-delete,
+.btn-add-task {
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.9rem;
@@ -748,6 +838,18 @@ li {
 
 .btn-delete:hover:not(:disabled) {
   background-color: #dc2626;
+}
+
+.btn-add-task {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-add-task:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
 button:disabled {

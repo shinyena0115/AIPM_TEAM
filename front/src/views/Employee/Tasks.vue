@@ -191,10 +191,11 @@
     <!-- 수동 업무 추가 -->
     <div class="card">
       <h2>➕ 수동 업무 추가</h2>
+      <p class="description">제목과 마감일만 입력하면 AI가 자동으로 분석합니다</p>
 
       <div class="form-group">
         <label>업무 제목</label>
-        <input v-model="newTask.title" type="text" placeholder="업무 제목을 입력하세요" />
+        <input v-model="newTask.title" type="text" placeholder="예: 로그인 API 개발" />
       </div>
 
       <div class="form-grid">
@@ -208,44 +209,52 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label>예상 소요시간 (분)</label>
-        <input v-model.number="newTask.estimatedTime" type="number" placeholder="예: 120" />
-      </div>
+      <button @click="addTaskWithAI" class="submit-btn ai-btn" :disabled="isAnalyzingSimple">
+        {{ isAnalyzingSimple ? '🤖 AI 분석 중...' : '🤖 AI 분석 후 저장' }}
+      </button>
 
-      <div class="form-grid">
+      <details class="advanced-options">
+        <summary>고급 옵션 (직접 입력)</summary>
+
         <div class="form-group">
-          <label>난이도</label>
-          <select v-model="newTask.difficulty">
+          <label>예상 소요시간 (분)</label>
+          <input v-model.number="newTask.estimatedTime" type="number" placeholder="예: 120" />
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>난이도</label>
+            <select v-model="newTask.difficulty">
+              <option value="">선택하세요</option>
+              <option>쉬움</option>
+              <option>보통</option>
+              <option>어려움</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>업무 유형</label>
+            <select v-model="newTask.taskType">
+              <option value="">선택하세요</option>
+              <option>기획</option>
+              <option>개발</option>
+              <option>버그수정</option>
+              <option>회의</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>중요도</label>
+          <select v-model="newTask.importance">
             <option value="">선택하세요</option>
-            <option>쉬움</option>
-            <option>보통</option>
-            <option>어려움</option>
+            <option>낮음</option>
+            <option>중간</option>
+            <option>높음</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>업무 유형</label>
-          <select v-model="newTask.taskType">
-            <option value="">선택하세요</option>
-            <option>기획</option>
-            <option>개발</option>
-            <option>버그수정</option>
-            <option>회의</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="form-group">
-        <label>중요도</label>
-        <select v-model="newTask.importance">
-          <option value="">선택하세요</option>
-          <option>낮음</option>
-          <option>중간</option>
-          <option>높음</option>
-        </select>
-      </div>
-
-      <button @click="addTask" class="submit-btn">업무 추가</button>
+        <button @click="addTask" class="btn-outline">수동으로 추가</button>
+      </details>
     </div>
 
     <!-- AI 우선순위 추천 -->
@@ -373,6 +382,7 @@ export default {
       selectedFiles: [],
       analyzedTasks: [],
       isAnalyzing: false,
+      isAnalyzingSimple: false, // 간단 AI 분석 로딩 상태
       inputMode: 'file', // 'file' 또는 'text'
       textInput: '', // 텍스트 직접 입력
       isRecommending: false,
@@ -507,6 +517,71 @@ export default {
           importance: ''
         };
         alert('업무가 추가되었습니다');
+      }
+    },
+    async addTaskWithAI() {
+      // 제목과 마감일만 확인
+      if (!this.newTask.title || !this.newTask.deadlineDate || !this.newTask.deadlineTime) {
+        alert('제목과 마감일을 입력해주세요');
+        return;
+      }
+
+      this.isAnalyzingSimple = true;
+
+      try {
+        var deadline = this.newTask.deadlineDate + 'T' + this.newTask.deadlineTime;
+
+        // AI 분석 API 호출
+        var analysisResponse = await this.$axios.post(
+          'http://localhost:3000/api/ai/analyze-simple-task',
+          {
+            title: this.newTask.title,
+            deadline: deadline
+          }
+        );
+
+        if (!analysisResponse.data.success) {
+          alert('AI 분석 실패: ' + analysisResponse.data.error);
+          return;
+        }
+
+        var analysis = analysisResponse.data.analysis;
+
+        // 분석 결과로 업무 생성
+        var taskResponse = await this.$axios.post(
+          'http://localhost:3000/api/tasks',
+          {
+            title: this.newTask.title,
+            deadline: deadline,
+            estimated_time: analysis.estimatedTime,
+            difficulty: analysis.difficulty,
+            taskType: analysis.taskType,
+            importance: analysis.importance
+          },
+          {
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+
+        if (taskResponse.data.success) {
+          this.tasks.push(taskResponse.data.task);
+          this.newTask = {
+            title: '',
+            deadlineDate: '',
+            deadlineTime: '',
+            estimatedTime: null,
+            difficulty: '',
+            taskType: '',
+            importance: ''
+          };
+          alert(`✅ AI 분석 완료!\n\n${analysis.reason}\n\n업무가 추가되었습니다.`);
+        }
+      } catch (error) {
+        console.error('AI 분석 후 저장 실패:', error);
+        alert('업무 추가 실패: ' + (error.response?.data?.error || error.message));
+      } finally {
+        this.isAnalyzingSimple = false;
       }
     },
     async getAIPriority() {
@@ -1314,5 +1389,36 @@ textarea {
   font-size: 0.9rem;
   color: #6b7280;
   margin-bottom: 1.5rem;
+}
+
+/* 고급 옵션 스타일 */
+.advanced-options {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.advanced-options summary {
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  user-select: none;
+}
+
+.advanced-options summary:hover {
+  color: #10b981;
+}
+
+.advanced-options[open] summary {
+  margin-bottom: 1rem;
+  color: #10b981;
+}
+
+.ai-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  font-weight: 600;
 }
 </style>
