@@ -81,21 +81,13 @@
             </div>
 
             <div class="form-group">
-              <label>연차 날짜:</label>
-              <input
-                v-model="leaveDate"
-                type="date"
-                placeholder="2025-11-05"
-              />
-            </div>
-
-            <div class="form-group">
               <label>전달받은 업무 내용:</label>
               <textarea
                 v-model="messageText"
                 rows="4"
                 placeholder="예: 김철수 과장님께서 전화하셔서 내일 회의 일정 변경 요청하셨습니다."
               ></textarea>
+              <p class="tip" style="margin-top: 0.5rem;">💡 오늘 날짜로 자동 등록됩니다</p>
             </div>
 
             <button :disabled="busy" class="btn-primary" @click="submitMessage">
@@ -105,21 +97,8 @@
 
           <!-- ② 내가 받은 업무 전달 -->
           <div class="card">
-            <h2>📬 내가 받은 업무 전달 (연차 복귀 시 확인)</h2>
-
-            <div style="display: flex; gap: 8px; align-items: flex-end; margin-bottom: 1rem;">
-              <div class="form-group" style="margin: 0; flex: 1; max-width: 200px;">
-                <label>날짜 필터:</label>
-                <input
-                  v-model="queryReceivedDate"
-                  type="date"
-                  placeholder="전체 조회"
-                />
-              </div>
-              <button :disabled="busy" class="btn-secondary" @click="loadReceivedMessages">
-                불러오기
-              </button>
-            </div>
+            <h2>📬 내가 받은 업무 전달</h2>
+            <p class="tip" style="margin-bottom: 1rem;">💡 연차 기간 동안 받은 모든 업무가 표시됩니다 (최근순)</p>
 
             <ul v-if="receivedMessages.length > 0">
               <li v-for="msg in receivedMessages" :key="msg.id">
@@ -247,12 +226,10 @@ export default {
 
       // 메모 작성
       selectedLeaver: '',
-      leaveDate: '',
       messageText: '',
       filterVacationOnly: false,
 
       // 받은 메모
-      queryReceivedDate: '',
       receivedMessages: [],
 
       // 보낸 메모
@@ -299,6 +276,7 @@ export default {
 
     await this.loadCurrentUser();
     await this.loadTeamMembers();
+    await this.loadReceivedMessages(); // 받은 업무 자동 로드
   },
   methods: {
     toggleSidebar() {
@@ -357,12 +335,12 @@ export default {
       if (!this.selectedLeaver) {
         return alert('연차 간 동료를 선택하세요');
       }
-      if (!DATE_RE.test(this.leaveDate)) {
-        return alert('연차 날짜를 선택하세요');
-      }
       if (!this.messageText.trim()) {
         return alert('전달할 업무 내용을 입력하세요');
       }
+
+      // 오늘 날짜 자동 설정
+      const today = new Date().toISOString().split('T')[0];
 
       this.busy = true;
       try {
@@ -370,14 +348,13 @@ export default {
           'http://localhost:3000/api/vacation-notice/messages',
           {
             leaverId: this.selectedLeaver,
-            leaveDate: this.leaveDate,
+            leaveDate: today,
             text: this.messageText,
           },
           { withCredentials: true }
         );
         alert('메모가 등록되었습니다');
         this.selectedLeaver = '';
-        this.leaveDate = '';
         this.messageText = '';
         await this.loadSentMessages();
       } catch (e) {
@@ -394,9 +371,6 @@ export default {
         const res = await this.$axios.get(
           'http://localhost:3000/api/vacation-notice/received',
           {
-            params: {
-              leaveDate: this.queryReceivedDate || undefined,
-            },
             withCredentials: true,
           }
         );
