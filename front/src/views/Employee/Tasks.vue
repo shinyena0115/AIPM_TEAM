@@ -18,18 +18,26 @@
     </div>
 
     <!-- 오늘의 추천 업무 -->
-    <div v-if="todayRecommendations.length > 0" class="card recommendation-card">
-      <h2>⭐ 오늘의 추천 업무 TOP 3</h2>
-      <div class="recommendation-list">
-        <div v-for="(task, index) in todayRecommendations" :key="task.id" class="recommendation-item">
-          <div class="rank-badge">{{ index + 1 }}</div>
-          <div class="recommendation-content">
-            <strong>{{ task.title }}</strong>
-            <p class="meta">{{ getDday(task.deadline) }} · {{ task.estimatedTime }}분 · 중요도: {{ task.importance }}</p>
+    <div v-if="todayRecommendations.length > 0" class="card today-tasks">
+      <h2>⭐ 오늘의 추천 업무</h2>
+      <div class="today-list">
+        <div
+          v-for="(task, index) in todayRecommendations"
+          :key="task.id"
+          class="today-item"
+          :class="'rank-' + (index + 1)"
+        >
+          <div class="today-rank">{{ index + 1 }}</div>
+          <div class="today-info">
+            <div class="today-title">{{ task.title }}</div>
+            <div class="today-meta">
+              <span class="badge" :class="'badge-' + task.importance">{{ task.importance }}</span>
+              <span>{{ getDday(task.deadline) }}</span>
+              <span>{{ task.estimatedTime }}</span>
+            </div>
           </div>
         </div>
       </div>
-      <p class="tip">💡 AI가 마감일과 중요도를 고려하여 선정했습니다</p>
     </div>
 
 
@@ -639,7 +647,17 @@ export default {
       var hoursLeft = this.getHoursLeft(deadline);
 
       if (hoursLeft < 0) {
-        return '마감 지남';
+        var hoursPassed = Math.abs(hoursLeft);
+        if (hoursPassed < 1) {
+          var minutesPassed = Math.floor(hoursPassed * 60);
+          return `${minutesPassed}분 지남`;
+        } else if (hoursPassed < 24) {
+          var hours = Math.floor(hoursPassed);
+          return `${hours}시간 지남`;
+        } else {
+          var days = Math.floor(hoursPassed / 24);
+          return `${days}일 지남`;
+        }
       } else if (hoursLeft < 1) {
         var minutesLeft = Math.floor(hoursLeft * 60);
         return `${minutesLeft}분 남음`;
@@ -904,54 +922,132 @@ export default {
 }
 
 /* 추천 업무 */
-.recommendation-card {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
+/* ===== 오늘의 추천 업무 (차분한 초록 강조) ===== */
+.today-tasks {
+  border-left: 4px solid #10b981;
+  background: #f9fafb;
 }
 
-.recommendation-card h2 {
-  color: white;
+.today-list {
+  margin-top: 1rem;
 }
 
-.recommendation-list {
-  margin: 1.5rem 0;
-}
-
-.recommendation-item {
+.today-item {
   display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 1rem;
-  border-radius: 0.75rem;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
   margin-bottom: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
 }
 
-.rank-badge {
+.today-item:hover {
+  border-left-color: #10b981;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 1순위 - 왼쪽 굵은 초록 선 */
+.today-item.rank-1 {
+  border-left-width: 4px;
+  border-left-color: #10b981;
+}
+
+.today-item.rank-1 .today-rank {
+  background: #10b981;
+  color: white;
   width: 36px;
   height: 36px;
-  background: white;
-  color: #10b981;
-  border-radius: 50%;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.today-item.rank-1 .today-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* 2순위 - 얇은 초록 선 */
+.today-item.rank-2 {
+  border-left-width: 3px;
+  border-left-color: #34d399;
+}
+
+.today-item.rank-2 .today-rank {
+  background: #34d399;
+  color: white;
+  width: 34px;
+  height: 34px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.today-item.rank-2 .today-title {
+  font-weight: 600;
+}
+
+/* 3순위 - 기본 */
+.today-item.rank-3 .today-rank {
+  background: #d1fae5;
+  color: #059669;
+  width: 32px;
+  height: 32px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.today-rank {
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  margin-right: 1rem;
   flex-shrink: 0;
 }
 
-.recommendation-content strong {
-  display: block;
-  margin-bottom: 0.25rem;
+.today-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.recommendation-content .meta {
+.today-title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
   font-size: 0.85rem;
-  opacity: 0.9;
+  color: #6b7280;
 }
 
-.recommendation-card .tip {
-  color: rgba(255, 255, 255, 0.8);
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-높음 {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.badge-중간 {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.badge-낮음 {
+  background: #f0fdf4;
+  color: #10b981;
 }
 
 /* ===== 공통 폼 스타일 ===== */

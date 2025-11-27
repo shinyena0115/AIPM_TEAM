@@ -249,25 +249,6 @@ function define(connection) {
         updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     });
 
-    // ✅ 개인 복귀 업무 테이블
-    const NextDayTodo = connection.define("next_day_todos", {
-        id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-        owner_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: { model: "users", key: "user_id" },
-        },
-        for_date: {
-            type: DataTypes.DATEONLY,
-            allowNull: false,
-        },
-        content: {
-            type: DataTypes.TEXT,
-            allowNull: false,
-        },
-        createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-        updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-    });
 
     // ✅ 업무 대체자 게시판 테이블
     const ReplacementEntry = connection.define("replacement_entries", {
@@ -303,10 +284,6 @@ function define(connection) {
     User.hasMany(PeerReview, { foreignKey: "reviewee_id", as: "ReceivedReviews" });
     PeerReview.belongsTo(User, { foreignKey: "reviewer_id", as: "Reviewer" });
     PeerReview.belongsTo(User, { foreignKey: "reviewee_id", as: "Reviewee" });
-
-    // ✅ NextDayTodo 관계 설정
-    User.hasMany(NextDayTodo, { foreignKey: "owner_id", as: "NextDayTodos" });
-    NextDayTodo.belongsTo(User, { foreignKey: "owner_id", as: "Owner" });
 
     // ✅ ReplacementEntry 관계 설정
     User.hasMany(ReplacementEntry, { foreignKey: "leaver_id", as: "ReceivedReplacements" });
@@ -347,7 +324,7 @@ function define(connection) {
     //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
     //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
-    return { User, Department, Team, Task, Vacation, Attendance, PeerReview, NextDayTodo, ReplacementEntry };
+    return { User, Department, Team, Task, Vacation, Attendance, PeerReview, ReplacementEntry };
 }
 
 module.exports = define;
