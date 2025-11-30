@@ -352,6 +352,15 @@ vacations.forEach(v => {
       ? (teamworkAvg + communicationAvg + responsibilityAvg) / 3
       : 0;
 
+      // 🔥 동료 코멘트 리스트 추가 (리뷰어 이름 제거)
+const peerComments = peerReviews
+  .filter(r => r.comment && r.comment.trim() !== "")
+  .map(r => ({
+    comment: r.comment  // reviewer, id 같은거 안 보냄
+  }));
+
+
+
     // -------------------------------------------------------------
     // 5) 퍼센타일 계산
     // -------------------------------------------------------------
@@ -512,6 +521,7 @@ try {
         communicationAvg,
         responsibilityAvg,
         peerAvg,
+         peer_reviews: peerComments, 
       },
        // 🔥 여기 추가!!!!
       attendanceDetails: {

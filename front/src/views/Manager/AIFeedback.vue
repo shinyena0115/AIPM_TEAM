@@ -1,156 +1,163 @@
 <template>
   <div class="feedback-layout">
-
-    <!-- 🔹 1) 고정 헤더 -->
-    <ManagerHeader class="header-fixed"
-                   @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+    <ManagerHeader class="header-fixed" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
     <div class="layout-body">
+      <ManagerSidebar v-if="sidebarOpen" class="manager-sidebar-fixed" />
 
-      <!-- 🔹 2) 헤더 아래 사이드바 -->
-      <ManagerSidebar
-  v-if="sidebarOpen"
-  class="manager-sidebar-fixed"
-/>
-
-      <!-- 🔹 3) 콘텐츠 전체 감싸는 page-wrapper -->
       <div class="page-wrapper" :class="{ 'sidebar-hidden': !sidebarOpen }">
+        <main class="content-area">
+          <div class="ai-feedback-page">
 
-    <main class="content-area">
-      <div class="ai-feedback-page">
-        
-        <!-- Header -->
-        <div class="header">
-          <h1>AI 인사평가 결과</h1>
-          <p>팀원 업무·출퇴근·연차·동료평가 기반 AI 인사평가 분석</p>
-        </div>
+            <!-- Header -->
+            <div class="header">
+              <h1>AI 인사평가 결과</h1>
+              <p>팀원 업무·출퇴근·연차·동료평가 기반 AI 인사평가 분석</p>
+            </div>
 
-        <!-- 날짜 선택 -->
-        <div class="filters">
-          <div>
-            <label>시작일</label>
-            <input type="date" v-model="periodStart" />
-          </div>
-          <div>
-            <label>종료일</label>
-            <input type="date" v-model="periodEnd" />
-          </div>
-        </div>
+            <!-- 날짜 선택 -->
+            <div class="filters">
+              <div>
+                <label>시작일</label>
+                <input type="date" v-model="periodStart" />
+              </div>
+              <div>
+                <label>종료일</label>
+                <input type="date" v-model="periodEnd" />
+              </div>
+            </div>
 
-        <!-- 팀원 목록 -->
-        <h3>팀원 목록 ({{ teamName || '팀 정보 없음' }})</h3>
-        <div class="member-list">
-          <div
-            class="member-card"
-            v-for="m in members"
-            :key="m.user_id"
-          >
-            <h4>{{ m.name }}</h4>
-            <p>{{ teamName }}</p>
+            <!-- 팀원 목록 -->
+            <h3>팀원 목록 ({{ teamName || '팀 정보 없음' }})</h3>
+            <div class="member-list">
+              <div class="member-card" v-for="m in members" :key="m.user_id">
+                <h4>{{ m.name }}</h4>
+                <p>{{ teamName }}</p>
+                <button :disabled="loading" @click="loadEvaluation(m.user_id)">
+                  {{ loading ? '분석 중...' : 'AI 분석하기' }}
+                </button>
+              </div>
+            </div>
 
-            <button
-              :disabled="loading"
-              @click="loadEvaluation(m.user_id)"
-            >
-              {{ loading ? '분석 중...' : 'AI 분석하기' }}
-            </button>
-          </div>
-        </div>
+            <!-- 로딩 -->
+            <div v-if="loading" class="loading-box">분석 중입니다. 잠시만 기다려주세요...</div>
 
-        <!-- 로딩 -->
-        <div v-if="loading" class="loading-box">
-          분석 중입니다. 잠시만 기다려주세요...
-        </div>
+            <!-- 오류 -->
+            <div v-if="error" class="error-box">{{ error }}</div>
 
-        <!-- 오류 -->
-        <div v-if="error" class="error-box">
-          {{ error }}
-        </div>
+            <!-- 분석 결과 -->
+            <div v-if="result" class="result-card">
+              <h2>{{ result.target_user?.name }}</h2>
+              <p class="team">{{ result.target_user?.team }}</p>
 
-        <!-- 분석 결과 -->
-        <div v-if="result" class="result-card">
-          <h2>{{ result.target_user?.name }}</h2>
-          <p class="team"> {{ result.target_user?.team }}</p>
+              <!-- 정량 지표 -->
+              <h3>정량 지표</h3>
+              <ul class="metrics-box">
+                <li>총 업무: {{ result.raw_metrics.totalTasks }}</li>
+                <li>완료 업무: {{ result.raw_metrics.completedTasks }}</li>
+                <li>업무 완료율: {{ result.raw_metrics.taskCompletionRate }}%</li>
+                <li>마감 준수율: {{ result.raw_metrics.onTimeRate }}%</li>
+                <li>출근 횟수: {{ result.raw_metrics.attendanceCount }}</li>
+                <li>평균 체크인: {{ result.raw_metrics.avgCheckIn }}</li>
+                <li>휴가일수: {{ result.raw_metrics.vacationDays }}</li>
+              </ul>
 
-          <h3>정량 지표</h3>
-<ul class="metrics-box">
-  <li>총 업무: {{ result.raw_metrics.totalTasks }}</li>
-  <li>완료 업무: {{ result.raw_metrics.completedTasks }}</li>
-  <li>업무 완료율: {{ result.raw_metrics.taskCompletionRate }}%</li>
-  <li>마감 준수율: {{ result.raw_metrics.onTimeRate }}%</li>
-  <li>출근 횟수: {{ result.raw_metrics.attendanceCount }}</li>
-  <li>평균 체크인: {{ result.raw_metrics.avgCheckIn }}</li>
-  <li>휴가일수: {{ result.raw_metrics.vacationDays }}</li>
-</ul>
-<!-- 📌 출퇴근 상세 분석 (Safe Rendering) -->
-<h3>출퇴근 상세 분석</h3>
-<ul class="metrics-box">
-  <li>정상 출근: {{ result.attendanceDetails?.normal ?? 0 }}</li>
-  <li>지각: {{ result.attendanceDetails?.late ?? 0 }}</li>
-  <li>조퇴: {{ result.attendanceDetails?.earlyLeave ?? 0 }}</li>
-  <li>야근: {{ result.attendanceDetails?.overtime ?? 0 }}</li>
-</ul>
-<!-- 📌 동료평가 -->
-<h3>동료평가 평균(1~5)</h3>
-<ul class="metrics-box">
-  <li>협업: {{ result.raw_metrics.teamworkAvg.toFixed(1) }}</li>
-  <li>커뮤니케이션: {{ result.raw_metrics.communicationAvg.toFixed(1) }}</li>
-  <li>책임감: {{ result.raw_metrics.responsibilityAvg.toFixed(1) }}</li>
-  <li>평균: {{ result.raw_metrics.peerAvg.toFixed(1) }}</li>
-</ul>
+              <!-- 출퇴근 상세 -->
+              <h3>출퇴근 상세 분석</h3>
+              <ul class="metrics-box">
+                <li>정상 출근: {{ result.attendanceDetails?.normal ?? 0 }}</li>
+                <li>지각: {{ result.attendanceDetails?.late ?? 0 }}</li>
+                <li>조퇴: {{ result.attendanceDetails?.earlyLeave ?? 0 }}</li>
+                <li>야근: {{ result.attendanceDetails?.overtime ?? 0 }}</li>
+              </ul>
 
-<!-- 📌 퍼센타일 -->
-<h3>팀 내 퍼센타일</h3>
-<ul class="metrics-box">
-  <li>업무 완료율: {{ result.percentiles.taskPercentile }}%</li>
-  <li>마감 준수율: {{ result.percentiles.deadlinePercentile }}%</li>
-  <li>출근수: {{ result.percentiles.attendancePercentile }}%</li>
-</ul>
+              <!-- 동료평가 -->
+              <h3>동료평가 평균(1~5)</h3>
+              <ul class="metrics-box">
+                <li>협업: {{ result.raw_metrics.teamworkAvg.toFixed(1) }}</li>
+                <li>커뮤니케이션: {{ result.raw_metrics.communicationAvg.toFixed(1) }}</li>
+                <li>책임감: {{ result.raw_metrics.responsibilityAvg.toFixed(1) }}</li>
+                <li>평균: {{ result.raw_metrics.peerAvg.toFixed(1) }}</li>
+              </ul>
 
-
-
-  <!-- 총평 -->
-  <div class="summary">
-    <p>AI 추천 점수: <b>{{ result.recommended_score }}</b></p>
-    <p>예상 등급: <b>{{ result.recommended_grade }}</b></p>
-  </div>
-
-  <hr />
-
-  <!-- 총평 -->
-  <h3>AI 종합 평가</h3>
-  <p>{{ result.evaluation?.final_comment }}</p>
-
-  <!-- 강점 -->
-  <h4>강점</h4>
+             <!-- ★ 동료평가 코멘트 섹션 -->
+<div class="peer-review-comments" v-if="result.raw_metrics.peer_reviews?.length > 0">
+  <h4>동료 코멘트</h4>
   <ul>
-    <li v-for="(s, i) in result.evaluation?.strengths" :key="'s'+i">
-      {{ s }}
+    <li v-for="(review, idx) in result.raw_metrics.peer_reviews" :key="idx">
+     {{ review.comment }}
     </li>
   </ul>
+</div>
 
-  <!-- 약점 -->
-  <h4>약점</h4>
-  <ul>
-    <li v-for="(w, i) in result.evaluation?.weaknesses" :key="'w'+i">
-      {{ w }}
-    </li>
-  </ul>
+<div v-else>
+  <p style="color:#777;">등록된 코멘트가 없습니다.</p>
+</div>
 
-  <!-- 개선 제안 -->
-  <h4>개선 제안</h4>
-  <ul>
-    <li v-for="(a, i) in result.evaluation?.recommended_actions" :key="'a'+i">
-      {{ a }}
-    </li>
-  </ul>
-  </div><!-- result-card -->
+              
 
-          </div><!-- ai-feedback-page -->
+              <!-- 퍼센타일 -->
+              <h3>팀 내 퍼센타일</h3>
+              <ul class="metrics-box">
+                <li>업무 완료율: {{ result.percentiles.taskPercentile }}%</li>
+                <li>마감 준수율: {{ result.percentiles.deadlinePercentile }}%</li>
+                <li>출근수: {{ result.percentiles.attendancePercentile }}%</li>
+              </ul>
+
+              <!-- AI 추천 -->
+              <div class="summary">
+                <p>AI 추천 점수: <b>{{ editData.recommended_score }}</b></p>
+                <p>AI 추천 등급: <b>{{ editData.recommended_grade }}</b></p>
+              </div>
+
+              <hr />
+
+              <!-- 평가 수정 -->
+              
+              <h3>AI 종합 평가</h3>
+              <textarea v-model="editData.final_comment" class="full-input" />
+
+              <h4>강점</h4>
+              <textarea v-model="editData.strengthsText" class="full-input" 
+                placeholder="줄바꿈으로 강점 여러 개 입력" />
+
+              <h4>약점</h4>
+              <textarea v-model="editData.weaknessesText" class="full-input" 
+                placeholder="줄바꿈으로 약점 여러 개 입력" />
+
+              <h4>개선 제안</h4>
+              <textarea v-model="editData.actionsText" class="full-input" 
+                placeholder="줄바꿈으로 개선 제안 여러 개 입력" />
+
+              <hr />
+
+              <!-- 팀장이 직접 입력하는 점수/등급 -->
+              <h3>팀장 직접 입력</h3>
+              <div style="display:flex; gap:20px;">
+                <div>
+                  <label>팀장 점수(0~100)</label>
+                  <input type="number" v-model="editData.manualScore" class="input"/>
+                </div>
+                <div>
+                  <label>팀장 등급(A~F)</label>
+                  <input type="text" v-model="editData.manualGrade"  class="input"/>
+                </div>
+              </div>
+              <!-- 🔥 확인 체크박스 -->
+<div class="confirm-box">
+  <input type="checkbox" v-model="editData.confirmChecked" id="confirmCheck" />
+  <label for="confirmCheck">
+    AI 인사평가 결과를 검토했으며, 수정/보완한 내용에 대해 책임이 있음을 확인합니다.
+
+  </label>
+</div>
+
+              <button class="save-btn" @click="saveEvaluation">저장</button>
+            </div>
+          </div>
         </main>
-
-      </div><!-- page-wrapper -->
-    </div><!-- layout-body -->
+      </div>
+    </div>
   </div>
 </template>
 
@@ -161,7 +168,6 @@ import ManagerHeader from "@/components/ManagerHeader.vue";
 
 export default {
   name: "AIFeedback",
-
   components: { ManagerSidebar, ManagerHeader },
 
   data() {
@@ -174,18 +180,17 @@ export default {
       loading: false,
       error: "",
       result: null,
+      editData: {},
       sidebarOpen: true,
+      
     };
   },
 
   async mounted() {
-    // 로그인 정보
     const me = await axios.get("/api/info");
     this.sessionUser = me.data.user;
 
-    // 팀원 목록
     const res = await axios.get(`/api/manager/team-members`);
-
     this.members = res.data.members || [];
     this.teamName = res.data.team || "팀 정보 없음";
   },
@@ -200,7 +205,6 @@ export default {
       }
 
       this.loading = true;
-
       try {
         const res = await axios.post("/api/ai/performance/evaluate", {
           target_user_id: targetUserId,
@@ -212,16 +216,60 @@ export default {
           this.error = res.data.error || "AI 분석 실패";
         } else {
           this.result = res.data;
+
+          // --- 수정 가능하게 복사 ---
+          this.editData = {
+            final_comment: res.data.evaluation.final_comment,
+            strengthsText: res.data.evaluation.strengths.join("\n"),
+            weaknessesText: res.data.evaluation.weaknesses.join("\n"),
+            actionsText: res.data.evaluation.recommended_actions.join("\n"),
+            recommended_score: res.data.recommended_score,
+            recommended_grade: res.data.recommended_grade,
+
+            manualScore: res.data.manual_score ?? "",
+            manualGrade: res.data.manual_grade ?? "",
+          };
         }
       } catch (err) {
         this.error = "서버 오류: " + (err.response?.data || err.message);
       }
-
       this.loading = false;
     },
-  },
+    
+
+    async saveEvaluation() {
+
+  if (!this.editData.confirmChecked)
+    return alert("❌ 확인 체크를 해야 저장할 수 있습니다.");
+
+      const payload = {
+        user_id: this.result.target_user.user_id,
+        periodStart: this.periodStart,
+        periodEnd: this.periodEnd,
+        evaluation: {
+          final_comment: this.editData.final_comment,
+          strengths: this.editData.strengthsText.split("\n").filter(v => v.trim()),
+          weaknesses: this.editData.weaknessesText.split("\n").filter(v => v.trim()),
+          recommended_actions: this.editData.actionsText.split("\n").filter(v => v.trim()),
+          recommended_score: this.editData.recommended_score,
+          recommended_grade: this.editData.recommended_grade,
+          manualScore: this.editData.manualScore,
+          manualGrade: this.editData.manualGrade,
+          
+        }
+      };
+
+      
+
+      const res = await axios.post("/api/ai/performance/save-evaluation", payload);
+      if (!res.data.success) return alert("❌ 저장 실패");
+
+      alert("✔ 저장 완료되었습니다");
+    }
+  }
 };
 </script>
+
 
 <style scoped>
 .manager-layout {
@@ -496,4 +544,106 @@ ul li {
 ul li:last-child {
   border-bottom: none;
 }
+
+.full-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+.input {
+  box-sizing: border-box;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+.full-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
+}
+
+/* ================================
+      동료 평가 코멘트 섹션
+================================ */
+.peer-review-comments {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-top: 12px;
+}
+
+.peer-review-comments h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 14px;
+}
+
+.peer-review-comments ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.peer-review-comments ul li {
+  padding: 10px 4px;
+  font-size: 15px;
+  color: #4b5563;
+  border-bottom: 1px solid #e5eff9;
+  line-height: 1.45;
+}
+
+.peer-review-comments ul li:last-child {
+  border-bottom: none;
+}
+
+
+
+
+.confirm-box {
+  margin: 20px 0 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 15px;
+  color: #374151;
+}
+
+
+.save-btn {
+  background: linear-gradient(to right, #4f46e5, #6366f1);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+.save-btn:disabled {
+  background: linear-gradient(to right, #4f46e5, #6366f1);
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+.save-btn:disabled:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+
+
 </style>
