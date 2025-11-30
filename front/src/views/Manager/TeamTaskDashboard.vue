@@ -82,6 +82,7 @@
 
               <button @click="toggleExpand(index)">
                 {{ expanded[index] ? "닫기" : "더보기" }}
+                
               </button>
 
               <div v-if="expanded[index]" class="detail-table mt-3">
@@ -93,6 +94,7 @@
                       <th>중요도</th>
                       <th>난이도</th>
                       <th>상태</th>
+                      <th>수정</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -115,6 +117,9 @@
                           {{ task.completed ? "완료" : "진행중" }}
                         </span>
                       </td>
+                      <td class="text-center">
+    <button class="edit-btn" @click="openTaskEditModal(task)">수정</button>
+  </td>
                     </tr>
                   </tbody>
                 </table>
@@ -131,6 +136,14 @@
           </div>
 
         </div>
+
+        <TaskEditModal
+  v-if="showTaskEditModal"
+  :task="selectedTask"
+  @close="showTaskEditModal = false"
+  @updated="fetchTeamTasks"
+/>
+
       </main>
     </div>
   </div>
@@ -143,7 +156,7 @@ import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from "chart.js";
 
 import ManagerSidebar from "@/components/ManagerSidebar.vue";
 import ManagerHeader from "@/components/ManagerHeader.vue";
-
+import TaskEditModal from "@/components/TaskEditModal.vue";
 const sidebarOpen = ref(true);
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
@@ -152,6 +165,16 @@ const { proxy } = getCurrentInstance();
 const loading = ref(true);
 const tasks = ref([]);
 const expanded = ref([]);
+//수정 모달
+const showTaskEditModal = ref(false);
+const selectedTask = ref(null);
+
+const openTaskEditModal = (task) => {
+  selectedTask.value = task;
+  showTaskEditModal.value = true;
+};
+
+
 
 /* ================================
    🔥 필터 상태
@@ -593,7 +616,16 @@ onMounted(fetchTeamTasks);
 .quick-btn:hover {
   background: #d1d5db;
 }
-
+.edit-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  font-size: 12px;
+}
+.edit-btn:hover {
+  background: #1d4ed8;
+}
 </style>
 
 
