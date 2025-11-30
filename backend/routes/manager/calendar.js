@@ -35,7 +35,7 @@ router.get("/team-events", async (req, res) => {
           attributes: ["name"],
         },
       ],
-      attributes: ["title", "deadline"],
+        attributes: ["title", "deadline", "completed", "importance"],
     });
 
     /* ------------------------------
@@ -54,24 +54,31 @@ router.get("/team-events", async (req, res) => {
       attributes: ["startDate", "endDate", "reason", "status"],
     });
 
+
+
+
     /* ------------------------------
        3️⃣ 캘린더용 변환
     ------------------------------ */
-    const events = [
+     const events = [
       ...tasks.map((t) => ({
-        title: `${t.User.name} - ${t.title}`,
+        type: "task",
+        username: t.User.name,
+        title: t.title,
         start: t.deadline,
         end: t.deadline,
-        type: "task",
+        completed: t.completed,
+        importance: t.importance,
       })),
       ...vacations.map((v) => ({
-        title: `${v.user.name} 휴가 (${v.reason})`,
+        type: "vacation",
+        username: v.user.name,
+        reason: v.reason,
         start: v.startDate,
         end: v.endDate,
-        type: "vacation",
-        status: v.status, // ✅ 프론트에서 상태 확인 가능
       })),
     ];
+
 
     res.json(events);
   } catch (err) {

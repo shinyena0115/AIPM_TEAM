@@ -31,19 +31,34 @@
 
     <!-- 일정 팝업 -->
     <div v-if="selectedDayEvents.length" class="event-popup">
-      <h4>📅 {{ selectedDateLabel }}</h4>
-      <ul>
-        <li
-          v-for="(e, i) in selectedDayEvents"
-          :key="i"
-          :class="e.type === 'vacation' ? 'vacation-item' : 'task-item'"
-        >
-          <span v-if="e.type === 'vacation'">🌿</span>
-          <span v-else>📝</span>
-          {{ e.title }}
-        </li>
-      </ul>
-    </div>
+  <h4>📅 {{ selectedDateLabel }}</h4>
+  <ul>
+    <li
+      v-for="(e, i) in selectedDayEvents"
+      :key="i"
+      :class="e.type === 'vacation' ? 'vacation-item' : 'task-item'"
+    >
+      <span v-if="e.type === 'vacation'">🌿</span>
+      <span v-else>📝</span>
+
+      <!-- 제목 + 상태 + 중요도 -->
+      <span>
+        {{ e.title }}
+
+        <!-- 🚫 휴가일 경우 상태(진행중/완료) 출력 안함 -->
+        <template v-if="e.type !== 'vacation'">
+          (
+          <span :class="e.completed ? 'text-done' : 'text-progress'">
+            {{ e.completed ? "완료" : "진행중" }}
+          </span>
+          <span v-if="e.importance === '높음'"> ⭐</span>
+          )
+        </template>
+      </span>
+    </li>
+  </ul>
+</div>
+
   </div>
 </template>
 
@@ -229,8 +244,8 @@ export default {
 
 /* 연차 */
 .vacation-day {
-  background: #e8f1ff !important;
-  color: #2f66f5 !important;
+  background: #e5f4e1 !important;
+  color: #20e05a !important;
 }
 
 /* 마감일 (하단 Accent Line) */
@@ -242,7 +257,7 @@ export default {
   width: 100%;
   height: 4px;
   border-radius: 0 0 10px 10px;
-  background: #8b5cf6;
+  background: #19953e;
 }
 
 /* 비어 있는 칸 */
@@ -256,7 +271,7 @@ export default {
 .event-popup {
   margin-top: 14px;
   padding: 12px;
-  background: #f9f9ff;
+  background: #e5f4e1;
   border-radius: 12px;
   font-size: 0.9rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -264,7 +279,7 @@ export default {
 
 .event-popup h4 {
   margin-bottom: 8px;
-  color: #4f46e5;
+  color: #496b04;
   font-weight: 600;
 }
 
@@ -275,11 +290,26 @@ export default {
   gap: 6px;
 }
 
-.vacation-item span {
-  color: #2563eb;
+
+
+/* 팝업 항목 글씨색 기본 검정 */
+.event-popup li {
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #111; /* 기본 글자색 */
 }
 
-.task-item span {
-  color: #7c3aed;
+/* 상태 색상만 강조 */
+.text-progress {
+  color: #c44;  /* 진행중 */
+  font-weight: 600;
 }
+
+.text-done {
+  color:  #496b04; /* 완료 */
+  font-weight: 600;
+}
+
 </style>

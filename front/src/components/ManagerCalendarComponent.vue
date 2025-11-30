@@ -30,20 +30,46 @@
     </div>
 
     <!-- 일정 팝업 -->
-    <div v-if="selectedDayEvents.length" class="event-popup">
-      <h4>📅 {{ selectedDateLabel }}</h4>
-      <ul>
-        <li
-          v-for="(e, i) in selectedDayEvents"
-          :key="i"
-          :class="e.type === 'vacation' ? 'vacation-item' : 'task-item'"
-        >
-          <span v-if="e.type === 'vacation'">🌿</span>
-          <span v-else>📝</span>
+   <!-- 일정 팝업 -->
+<div v-if="selectedDayEvents.length" class="event-popup">
+  <h4>📅 {{ selectedDateLabel }}</h4>
+  <ul>
+    <li
+      v-for="(e, i) in selectedDayEvents"
+      :key="i"
+      :class="e.type === 'vacation' ? 'vacation-item' : 'task-item'"
+    >
+      <!-- 아이콘 -->
+      <span v-if="e.type === 'vacation'">🌿</span>
+      <span v-else>📝</span>
+
+      <!-- 이름 + 제목/사유 -->
+      <span>
+        {{ e.username }} -
+
+        <template v-if="e.type === 'vacation'">
+          연차
+          <span v-if="e.reason"> ({{ e.reason }})</span>
+        </template>
+
+        <template v-else>
           {{ e.title }}
-        </li>
-      </ul>
-    </div>
+        </template>
+
+        <!-- 업무만 상태/중요도 표시 -->
+        <template v-if="e.type !== 'vacation'">
+          (
+          <span :class="e.completed ? 'text-done' : 'text-progress'">
+            {{ e.completed ? "완료" : "진행중" }}
+          </span>
+          <span v-if="e.importance === '높음'"> ⭐</span>
+          )
+       </template>
+
+      </span>
+    </li>
+  </ul>
+</div>
   </div>
 </template>
 
@@ -74,6 +100,14 @@ export default {
     },
   },
   methods: {
+     taskLabel(e) {
+    const status = e.completed
+      ? "완료"
+      : `<span style='color:#c44;'>진행중</span>`;
+
+    const star = e.importance === "높음" ? " ⭐" : "";
+    return `${e.username} - ${e.title} (${status}${star})`;
+  },
     async fetchEvents() {
       try {
         const res = await this.$axios.get("/api/calendar/team-events");
@@ -268,11 +302,14 @@ export default {
   gap: 6px;
 }
 
-.vacation-item span {
-  color: #2563eb;
+
+
+
+
+.text-progress {
+  color: #c44;
+  font-weight: 600;
 }
 
-.task-item span {
-  color: #7c3aed;
-}
+.text-done { color:#496b04; /* 연두색 추천 (#9acd32 = 라임/연두) */ font-weight: 600; }
 </style>
