@@ -24,7 +24,7 @@ var connection = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process
 // ✅ 2. 모델 불러오기 및 정의 실행
 // ======================================
 var define = require("./model.js");
-const { User, Department, Team, Task, Vacation, Attendance, PeerReview, NextDayTodo, ReplacementEntry } = define(connection);
+const { User, Department, Team, Task, Vacation, Attendance, PeerReview, NextDayTodo, ReplacementEntry, PerformanceEvaluation } = define(connection);
 
 // ✅ 전역 모델 등록 (라우터에서 바로 사용 가능)
 global.User = User;
@@ -36,6 +36,7 @@ global.Attendance = Attendance;
 global.PeerReview = PeerReview;
 global.NextDayTodo = NextDayTodo;
 global.ReplacementEntry = ReplacementEntry; 
+global.PerformanceEvaluation = PerformanceEvaluation;
 // ======================================
 // ✅ 3. 세션 설정 (MySQL 세션 저장소)
 // ======================================
@@ -145,7 +146,7 @@ app.use("/api/manager", teamTaskDashboard);
 
 app.use("/api/manager", require("./routes/manager/team"));
 app.use("/api/ai/performance", require("./routes/api/aiPerformance"));
-
+app.use("/api/ai/performance", require("./routes/manager/save-evaluation"));
 
 // ✅ Calendar 라우터 등록
 if (calendarRouter) {

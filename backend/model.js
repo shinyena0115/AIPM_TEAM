@@ -250,6 +250,90 @@ function define(connection) {
     });
 
 
+    // ✅ AI / 매뉴얼 인사평가 테이블
+const PerformanceEvaluation = connection.define("performance_evaluations", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+
+    user_id: {
+        // 평가 대상자
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "users", key: "user_id" },
+    },
+
+    evaluator_id: {
+        // 평가 작성자 (팀장)
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "users", key: "user_id" },
+    },
+
+    period_start: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        comment: "평가 기간 시작일",
+    },
+
+    period_end: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        comment: "평가 기간 종료일",
+    },
+
+    final_comment: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "총평",
+    },
+
+    strengths: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "강점 배열",
+    },
+
+    weaknesses: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "개선 필요점 배열",
+    },
+
+    recommended_actions: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "권장 행동/계획 배열",
+    },
+
+    recommended_score: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: "AI 추천 점수",
+    },
+
+    recommended_grade: {
+        type: DataTypes.STRING(5),
+        allowNull: true,
+        comment: "AI 추천 등급",
+    },
+
+    manual_score: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: "팀장 입력 점수",
+    },
+
+    manual_grade: {
+        type: DataTypes.STRING(5),
+        allowNull: true,
+        comment: "팀장 입력 등급",
+    },
+
+    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+});
+
+
+
     // ✅ 업무 대체자 게시판 테이블
     const ReplacementEntry = connection.define("replacement_entries", {
         id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -313,8 +397,15 @@ function define(connection) {
     User.hasMany(Vacation, { foreignKey: "user_id", as: "Vacations" });
     Vacation.belongsTo(User, { foreignKey: "user_id", as: "user" }); // 👈 as 추가
 
+    // PerformanceEvaluation 관계 설정
+User.hasMany(PerformanceEvaluation, { foreignKey: "user_id", as: "ReceivedEvaluations" });
+User.hasMany(PerformanceEvaluation, { foreignKey: "evaluator_id", as: "GivenEvaluations" });
+
+PerformanceEvaluation.belongsTo(User, { foreignKey: "user_id", as: "TargetUser" });
+PerformanceEvaluation.belongsTo(User, { foreignKey: "evaluator_id", as: "Evaluator" });
+
     // ✅ 테이블 생성 (force: false → 기존 데이터 유지)
-    // alter: true는 인덱스 중복 문제를 일으킬 수 있어서 주석 처리
+    //alter: true는 인덱스 중복 문제를 일으킬 수 있어서 주석 처리
     //connection.sync({ alter: true });
 
     // ======================
@@ -324,7 +415,7 @@ function define(connection) {
     //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
     //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
-    return { User, Department, Team, Task, Vacation, Attendance, PeerReview, ReplacementEntry };
+    return { User, Department, Team, Task, Vacation, Attendance, PeerReview, ReplacementEntry,  PerformanceEvaluation}
 }
 
 module.exports = define;
