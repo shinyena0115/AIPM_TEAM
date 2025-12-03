@@ -48,69 +48,86 @@ export default {
       userIcon: userProfileIcon,
       checkInTime: null,
       checkOutTime: null,
-      currentUser: null, // ✅ props 대신 직접 관리
+      currentUser: null,
     };
   },
+
   async mounted() {
-    // ✅ 로그인된 사용자 정보 불러오기
     try {
+      // ✅ 로그인 유저 정보
       const res = await this.$axios.get("http://localhost:3000/api/info", {
-        withCredentials: true, // 세션 쿠키 포함 필수
+        withCredentials: true,
       });
 
       if (res.data.isLogin) {
         this.currentUser = res.data.user;
-      } else {
-        console.warn("로그인된 사용자가 없습니다.");
+
+        // ✅ 로그인 후 오늘 출근 기록 DB 조회
+        await this.fetchTodayAttendance();
       }
     } catch (err) {
-      console.error("사용자 정보 불러오기 실패:", err);
+      console.error("초기 데이터 로드 실패:", err);
     }
   },
-  methods: {
-  toggleDropdown() {
-    this.showDropdown = !this.showDropdown;
-  },
-  async logout() {
-    try {
-      await this.$axios.post("http://localhost:3000/api/logout", {}, { withCredentials: true });
-      this.$router.push("/login");
-    } catch (err) {
-      console.error("로그아웃 실패:", err);
-    }
-  },
-  async checkIn() {
-    if (!this.currentUser) return;
-    try {
-      const res = await this.$axios.post("http://localhost:3000/api/attendance/checkin", {
-        user_id: this.currentUser.user_id,
-      });
-      const now = new Date();
-      this.checkInTime = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
-      alert("✅ 출근 기록 완료!");
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "출근 처리 중 오류 발생");
-    }
-  },
-  async checkOut() {
-    if (!this.currentUser) return;
-    try {
-      const res = await this.$axios.post("http://localhost:3000/api/attendance/checkout", {
-        user_id: this.currentUser.user_id,
-      });
-      const now = new Date();
-      this.checkOutTime = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
-      alert("✅ 퇴근 기록 완료!");
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "퇴근 처리 중 오류 발생");
-    }
-  },
-},
 
+  methods: {
+    toggleDropdown() {
+      this.showDropdown = !this.showDropdown;
+    },
+
+    async logout() {
+      await this.$axios.post(
+        "http://localhost:3000/api/logout",
+        {},
+        { withCredentials: true }
+      );
+      this.$router.push("/login");
+    },
+
+    // ✅ 오늘 출근 기록 DB 조회
+    async fetchTodayAttendance() {
+      try {
+        const res = await this.$axios.get(
+          `http://localhost:3000/api/attendance/today/${this.currentUser.user_id}`
+        );
+
+        if (res.data.attendance) {
+          this.checkInTime = res.data.attendance.check_in;
+          this.checkOutTime = res.data.attendance.check_out;
+        }
+      } catch (err) {
+        console.error("출근 기록 조회 실패:", err);
+      }
+    },
+
+    // ✅ 출근 (DB 값 사용)
+    async checkIn() {
+      if (!this.currentUser) return;
+
+      const res = await this.$axios.post(
+        "http://localhost:3000/api/attendance/checkin",
+        { user_id: this.currentUser.user_id }
+      );
+
+      // ✅ DB에 저장된 시간
+      this.checkInTime = res.data.attendance.check_in;
+    },
+
+    // ✅ 퇴근 (DB 값 사용)
+    async checkOut() {
+      if (!this.currentUser) return;
+
+      const res = await this.$axios.post(
+        "http://localhost:3000/api/attendance/checkout",
+        { user_id: this.currentUser.user_id }
+      );
+
+      this.checkOutTime = res.data.attendance.check_out;
+    },
+  },
 };
 </script>
+
 
 <style scoped>
 .employee-header {

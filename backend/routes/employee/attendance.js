@@ -125,6 +125,18 @@ router.post("/checkout", async (req, res) => {
     res.status(500).json({ message: "퇴근 중 오류 발생", error: err.message });
   }
 });
+// ✅ 오늘 출근 기록 조회
+router.get("/today/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+  const today = getKSTDate();
+
+  const attendance = await Attendance.findOne({
+    where: { user_id, date: today },
+  });
+
+  res.json({ attendance });
+});
+
 
 
   
