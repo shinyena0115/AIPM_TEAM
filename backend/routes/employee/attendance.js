@@ -110,8 +110,8 @@ router.post("/checkout", async (req, res) => {
     // (2) 18:00 이후 퇴근 → 정상 퇴근
     else {
       // 지각 출근 + 야근은 없음 → 지각 + 야근 조합 금지
-      // 출근 상태가 정상이고 20:00 이후 퇴근한 경우만 야근 인정
-      if (!isLate && currentTime >= "20:00:00") {
+      // 출근 상태가 정상이고 19:00 이후 퇴근한 경우만 야근 인정
+      if (!isLate && currentTime >= "19:00:00") {
         newStatus += ", 야근";
       }
     }
