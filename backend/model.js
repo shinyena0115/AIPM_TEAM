@@ -411,8 +411,10 @@ PerformanceEvaluation.belongsTo(User, { foreignKey: "evaluator_id", as: "Evaluat
     // ======================
     // ✅ 동기화 (테이블 초기화)
     // ======================
-    //connection.sync({ force: true })
+    //connection.query('SET FOREIGN_KEY_CHECKS = 0')
+    //.then(() => connection.query('SET FOREIGN_KEY_CHECKS = 1'))
     //.then(() => console.log("✅ DB 초기화 완료 (모든 테이블 재생성됨)"))
+    //.then(() => connection.sync({ force: true }))
     //.catch(err => console.error("❌ DB 초기화 오류:", err));
 
     return { User, Department, Team, Task, Vacation, Attendance, PeerReview, ReplacementEntry,  PerformanceEvaluation}

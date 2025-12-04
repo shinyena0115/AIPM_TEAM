@@ -51,33 +51,20 @@
             </div>
 
             <div class="form-group">
-              <label>연차 간 동료 선택:</label>
-              <div style="display: flex; gap: 8px; margin-bottom: 0.5rem;">
-                <button
-                  type="button"
-                  @click="filterVacationOnly = false"
-                  :class="['filter-btn', { active: !filterVacationOnly }]"
-                >
-                  전체 동료
-                </button>
-                <button
-                  type="button"
-                  @click="filterVacationOnly = true"
-                  :class="['filter-btn', { active: filterVacationOnly }]"
-                >
-                  🏖️ 연차중만 보기
-                </button>
-              </div>
+              <label>현재 연차 중인 동료 선택:</label>
               <select v-model="selectedLeaver" class="form-select">
-                <option value="">-- 연차자를 선택하세요 --</option>
+                <option value="">-- 연차 중인 동료를 선택하세요 --</option>
                 <option
-                  v-for="user in filteredTeamMembers"
+                  v-for="user in vacationOnlyMembers"
                   :key="user.user_id"
                   :value="user.user_id"
                 >
-                  {{ user.vacation_status === '연차중' ? '🏖️ ' : '' }}{{ user.name }} ({{ user.email }}){{ user.vacation_status === '연차중' ? ' - 연차중' : '' }}
+                  🏖️ {{ user.name }} ({{ user.email }}) - 연차중
                 </option>
               </select>
+              <p v-if="vacationOnlyMembers.length === 0" class="tip" style="margin-top: 0.5rem; color: #888;">
+                현재 연차 중인 팀원이 없습니다.
+              </p>
             </div>
 
             <div class="form-group">
@@ -227,7 +214,6 @@ export default {
       // 메모 작성
       selectedLeaver: '',
       messageText: '',
-      filterVacationOnly: false,
 
       // 받은 메모
       receivedMessages: [],
@@ -246,27 +232,24 @@ export default {
     };
   },
   computed: {
-    filteredTeamMembers() {
-      if (this.filterVacationOnly) {
-        const today = new Date().toISOString().split('T')[0]; // 오늘 날짜 (YYYY-MM-DD)
+    vacationOnlyMembers() {
+      const today = new Date().toISOString().split('T')[0]; // 오늘 날짜 (YYYY-MM-DD)
 
-        return this.teamMembers.filter(user => {
-          // 1. vacation_status가 '연차중'인지 확인
-          if (user.vacation_status !== '연차중') {
-            return false;
-          }
+      return this.teamMembers.filter(user => {
+        // 1. vacation_status가 '연차중'인지 확인
+        if (user.vacation_status !== '연차중') {
+          return false;
+        }
 
-          // 2. 연차 종료일이 지났는지 확인
-          if (user.current_vacation_end && user.current_vacation_end < today) {
-            // 연차가 끝났으면 제외
-            return false;
-          }
+        // 2. 연차 종료일이 지났는지 확인
+        if (user.current_vacation_end && user.current_vacation_end < today) {
+          // 연차가 끝났으면 제외
+          return false;
+        }
 
-          // 연차중이고 종료일이 지나지 않았으면 포함
-          return true;
-        });
-      }
-      return this.teamMembers;
+        // 연차중이고 종료일이 지나지 않았으면 포함
+        return true;
+      });
     }
   },
   async mounted() {
